@@ -196,7 +196,7 @@ One new developement in the SLAM community is the developement of factor graph b
 
 One very intuitive way of representing the SLAM problem is through a Bayesian network, or Bayes net for short. It's a graphical way of representing a joint probability density function that easily shows the different conditionings and relationships between variables. 
 
-To be more precise, a Bayes net tries to model the joint pdf, $p(\theta)$, of all the random variables of interest, $\Theta = \{\theta_1, ..., \theta_n$, as a product of conditional probabilities
+To be more precise, a Bayes net tries to model the joint pdf, $p(\theta)$, of all the random variables of interest, $\Theta = \{\theta_1, ..., \theta_n\}$, as a product of conditional probabilities
 
 \begin{equation}
     p(\Theta) = \prod_j p(\theta_j|\pi_j)
@@ -204,7 +204,7 @@ To be more precise, a Bayes net tries to model the joint pdf, $p(\theta)$, of al
 
 where $\pi_j$ is the set of variables that $\theta_j$ depends on. For the offline SLAM problem the variables of interest would be the set of poses, $X$, and the set of measurements, $Z$, that the agent has been in and observed, respectively, as well as the location of all the landmarks, also known as the map $m$. In other words, $\Theta = \{X,Z,m\}$. 
 
-This is best illustrated through an example. Let's say we have a two poses, $x_1$ and $x_2$. The first pose we have an initial guess on, $p(x_1)$, and $x_1$ is also measured. Call this measurement $z_1$, with measurement model $p(z_1|x_1)$. In addition we have a conditional probability distribution on the second pose given the first, $p(x_2|x_1)$. This is the motion model. 
+This is best illustrated through an example. Let's say we have a two poses, $x_1$ and $x_2$. The first pose we have an initial guess on, $p(x_1)$, and $x_1$ is also measured. Call this measurement $z_1$, with measurement model $p(z_1|x_1)$. In addition we have a conditional probability distribution on the second pose given the first, $p(x_2|x_1)$. This is called the motion model. 
 
 In addition there are two landmarks, $m_1$ and $m_2$, with pdfs on their location $p(m_1)$ and $p(m_2)$. In the first pose the agent measured the location of $m_1$ relative to himself. Call this measurement $z_2$. It has a measurement model that depends on both the landmark and the pose of the agent, $p(z_2|x_1,m_1)$. Similarily the agent also measured $m_2$ from pose $x_1$ and from pose $x_1$. Call these measurements $z_3$ and $z_4$ respectively, with corresponding measurement models, $p(z_3|x_1,m_2)$ and $p(z_4|x_2,m_2)$. 
 
@@ -291,7 +291,7 @@ The set of all the variables that have edges to a certain factor $\phi_i$ is wri
     \phi(\Theta) = \prod_i \phi_i(\Theta_i)
 \end{equation}
 
-A Bayes net can be converted to a factor graph through a simple transformation. Every node in the net that is not given is split into two; a variable and a factor. The given variables are simply ommited, and become fixed parameters in the factors. 
+A Bayes net can be converted to a factor graph through a simple transformation. Every node in the net that is not given is split into two; a variable and a factor. The given variables are simply omitted, and become fixed parameters in the factors. 
 
 This means that in the example in figure \ref{Fig:BayesNet}, since the measurements are given, they are absorbed into the nodes adjacent to them. The rest of the nodes, i.e. the poses and the landmarks are split into variables and factors. Variables that used to be connected via a measurement are now connected to the same factor. The corresponding factor graph of the above example is shown in figure \ref{Fig:FactorGraph}. Here a dot indicates a factor. There are factors for each of the landmark measurements and for the measured initial pose as well as the relative pose between $x_1$ and $x_2$. There are also factors for the prior on the initial pose and priors on the landmarks.
 
@@ -333,7 +333,7 @@ Linearizing the above cost-function around the current estimate $\Theta^0$, lead
     &= \argmin_{\Delta}\sum_i || H_i\Delta_i - (z_i - h_i(\Theta_i^0))||_{\Sigma_i}^2
 \end{align}
 
-where $z_i - h_i(\Theta_i^0)$ is the error between the actual and predicted measurement given the estimate of the relevant variables. By a change of basis, scaling the different variables so the optimization becomes a sum of euclidian norms, this can again be rewritten as 
+where $z_i - h_i(\Theta_i^0)$ is the error between the actual and predicted measurement given the estimate of the relevant variables. By a change of basis, scaling the different variables such that the optimization becomes a sum of euclidian norms, this can again be rewritten as 
 
 \begin{align}
     \Delta* &= \argmin_{\Delta}\sum_i||A_i\Delta_i - b_i||_2^2 \\
@@ -346,8 +346,114 @@ This equates to solving the following for the optimal step $\Delta*$
     (A^TA)\Delta* = A^Tb
 \end{equation}
 
-This can be done through QR or Cholesky factorization. In SLAM however the matrix A, and the resulting information matrix $A^TA$ are usually really sparse, since each factor only depends on a small set of variables. This can be used to speed up the optimization, using sparse factorization schemes like sparse Cholesky or LDL factorization\cite{SparseLinearAlgebra}. 
+This can be done through QR or Cholesky factorization. Both these algorithms amount to finding a factorization of the system that makes it easy to solve. In QR this is done by factorizing it as $A^TA = R^TR$, where $R$ is an upper triangular $n \times n$ matrix. When you have this factorization, solving the system is just solving 
 
-\subsubsection{iSAM2}
+\begin{equation}
+    R^Ty = A^Tb
+\end{equation}
 
-Throughout the above discussion the factor graph was applied to the problem of offline or batch SLAM, where the desired objective is to find the set of poses and landmarks that is most probable, given all the measurements. This is however not the same setting as Revolve NTNU is fased with.
+by forward substitution, then 
+
+\begin{equation}
+    R\Delta* = y
+\end{equation}
+
+by back-substitution. 
+
+QR-factorization is a more numerically stable and accurate method that achieves the same goal by instead finding a factorization of $A$ 
+
+\begin{equation}
+    A = Q\begin{bmatrix} R \\ 0 \end{bmatrix}
+\end{equation}
+
+and a corresponding right hand side
+
+\begin{equation}
+    \begin{bmatrix} d \\ e \end{bmatrix} = Q^Tb
+\end{equation}
+
+Solving 
+
+\begin{equation}
+    R\Delta* = d
+\end{equation}
+
+by back-substitution then gives the desired step $\Delta*$.
+
+\subsubsection{Sparsity}
+
+In SLAM the matrix A, and the resulting information matrix $A^TA$ are usually really sparse, because of the following three properties
+
+\begin{itemize}
+    \item The poses are linked linearily.
+    \item No factors between landmarks.
+    \item Relatively few factors from each landmark.
+\end{itemize}
+
+These properties together means that each factor in the graph depends on only a small set of variables, which amounts to sparsity of $A$ and $A^TA$. This sparsity can be used to speed up the optimization, using sparse factorization schemes like sparse Cholesky or LDL factorization\cite{SparseLinearAlgebra}. 
+
+\subsubsection{Incremental inference}
+
+Throughout the above discussion the factor graph was applied to the problem of offline or batch SLAM, where the desired objective is to find the set of poses and landmarks that is most probable, given all the measurements. This is however not the same setting as Revolve NTNU is faced with. 
+
+In real time SLAM the map is built up gradually, and care must be taken so the computation time does not keep increasing as the number of landmarks increase. In formula student the map is finite, as the track eventually loops, but even so there are strict constraints on how much computation time the optimization can afford. To drive fast the time from detection to map and correction on pose must be minimized. A delay might mean the car hits a delimiter that it could have known about.
+
+The problem is thus one of incremental inference, and can be seen as successively solving batch SLAM problems, where at each step the new problem is just the previous problem with some added constraints from the new measurements.
+
+For the nonlinear least-squares problem that comes from adding gaussian zero-mean noise to the measurement and motion models, this problem can tackled by reusing as much as possible of the previous QR-factorization. Naively one might update, relinearize and refactorize the entire cost function using QR-factorization every time new measurements arrive. Instead one could use a process called QR updating to add the new information directly to the QR-factorized linearized system. 
+
+In QR-updating measurements are just thought of as adding a new row $a^T$ to previous factor R and a new scalar element $\beta$ to the right hand side $d$. This yields a new system $R_d|d_a$ that is not in the correct form
+
+\begin{equation}
+    R' = \begin{bmatrix} R \\ a^T \end{bmatrix}=\begin{bmatrix} Q^T &  \\ & a \end{bmatrix}\begin{bmatrix} A \\ a^T \end{bmatrix} \quad \quad d_a' = \begin{bmatrix} d \\ \beta  \end{bmatrix}
+\end{equation}
+
+This is then moved into the right form by successive applications of Givens rotations\cite{GivensRot}. Without going into too much detail, the Givens rotations succesively remove one and one element from the bottom row, possibly adding terms higher up, which are then also removed later. After a certain amount of rotations the matrix $R'$ is in upper triangular form, which means the linear least square is easy to solve.
+
+\subsubsection{Bayes tree}
+
+The above solution allows incremental updating of the linearized system. Its memory usage and computation time are still unbounded over time. It also will tend to fill in the previously sparse information matrix as the algorithms keep iterating.
+
+The problem of increased memory usage and computation time is in part solved in iSAM2 via marginalization over time. This means removing variables from the optimization without removing the information they encode. This corresponds to integrating out the variable we want eliminated $y$ from the joint pdf of $y$ and the rest of the variables $X$, yielding a new pdf that is only over the remaining variables
+
+\begin{equation}
+    p(X) = \int_yp(X,y)dy
+\end{equation}
+
+For a gaussian density represented as 
+
+\begin{equation}
+    p(x,y) = \mathcal{N}(\begin{bmatrix}\mu_x \\ \mu_y \end{bmatrix}, \begin{bmatrix} \Sigma_{xx} & \Sigma_{xy} \\ \Sigma_{xy}^T & \Sigma_{yy} \end{bmatrix}) 
+\end{equation}
+
+this is nothing more than just picking the relevant mean and covariance to get the new pdf
+
+\begin{equation}
+    p(y) = \mathcal{N}(\mu_x,\Sigma_{yy})
+\end{equation}
+
+To achieve marginalization of a factor graph however, and to avoid that the Givens rotations needed for incremental updating of the factorization eventually makes the information matrix dense, more sophisticated tools are required. The tools that iSAM2 uses are bipartite eliminitation\cite{BipartElim} and the Bayes tree\cite{BayesTree}. 
+
+Bipartite elimination refers to converting a factor graph into a chordal Bayes net by eliminating one and one variable from the factor graph until only the bayes net remains. Elimination of a variable $\theta_j$ implies the following steps(replicated from \cite{iSAM2} for completeness)
+
+\begin{itemize}
+    \item Remove from the factor graph all factors $\phi_i(\Theta_i)$ that are adjacent to $\theta_j$. Define the separator $S_j$ as all variables involved in those factors excluding $\theta_j$.
+    \item Form the (unnormalized) joint density $f_{joint}(\theta_j,S_j) = \prod_i\phi_i(\Theta_i)$ as the product of the factors in $S_j$.
+    \item Usin the chain rule, factorize the joint density $f_{joint}(\theta_j, S_j) = P(\theta_j| S_j)f_{new}(S_j)$. Add the conditional $P(\theta_j|S_j)$ into the Bayes net and the factor $f_{new}(S_j)$ back into the factor graph.
+\end{itemize}
+
+This chordal Bayes net is then possible to transform into a Bayes tree.  The Bayes tree is a directed acyclical graph built by forming cliques in the chordal bayes tree. This is always possible, although a proof of this is not going to be presented here. The algorithm can be seen in the iSAM2 paper\cite{iSAM2}. This structure encodes the joint density of the factor graph in such a way that incremental inference is made easy and that intuitively shows the structure of the information matrix, making it easy to avoid that this gets dense over time.
+
+Once the bayes tree is formed, adding new factors is just 
+
+\begin{itemize}
+    \item Removing the cliques which have edges to the factor, storing the orphaned sub-trees for later, and re-interpret the removed cliques as a factor graph.
+    \item Add the new factors into this small factor graph.
+    \item Re-order the variables of the factor graph.
+    \item Eliminate into a new Bayes tree.
+    \item Insert the previously orphaned sub-trees back into the new Bayes tree.
+\end{itemize}
+
+This is the gist of the iSAM2 algorithm. In addition it uses a constrained COLAMD (CCOLAMD) ordering when it reorders the variables after creating a new factor graph. The constraint are that it wants to have the newest variables at the top of the Bayes tree since they are the most likely to be affected in the next step. This constraint ensures the size of the affected part of the tree is smaller in futures steps, and COLAMD ensures overall good ordering. 
+
+It also relinearizes only parts of the cost function. It does this by relinearizing only the variables that have gone above a threshold away from their linearization value. This is crucial for this incremental algorithm, since if batch relinearizations were needed it would make the computational cost unbounded over time. Finally, for the same reason, it updates the solution of the variables by going backwards in the Bayes tree. When the change in a variable goes below a threshold it stops updating the solutions. 
