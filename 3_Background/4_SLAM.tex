@@ -190,5 +190,42 @@ Mention loop closures. Should there be a part about how we do loop closures?? I 
 
 Talk about how since we are doing featureless SLAM we need some sort of front end doing data association, so it transitions well into the next section about data association.
 
-\subsection{iSAM}
+One new developement in the SLAM community is the developement of factor graph based approaches. This is by many considered state of the art, and some of the algorithms to come out of this approach tackles issues that haven't been possible to solve other ways. In the following the factor graph and some of the algorithms that uses it are explained. The subject is graphical in nature, and a few examples are therefore in place. Many of the main points of the discussion are paraphrased from Frank Dellaert's amazing book on the subject\cite{Dellaert}. \todo{Is this okay to say?}
 
+\subsection{Bayesian network}
+
+One very intuitive way of representing the SLAM problem is through a Bayesian network, or Bayes net for short. It's a graphical way of representing a joint probability density function that easily shows the different conditionings and relationships between variables. 
+
+To be more precise, a Bayes net tries to model the joint pdf, $p(\theta)$, of all the random variables of interest, $\Theta = \{\theta_1, ..., \theta_n$, as a product of conditional probabilities
+
+\begin{equation}
+    p(\Theta) = \prod_j p(\theta_j|\pi_j)
+\end{equation}
+
+where $\pi_j$ is the set of variables that $\theta_j$ depends on. For the offline SLAM problem the variables of interest would be the set of poses, $X$, and set of measurements, $Z$, that the agent has been in and observed, respectively. In other words, $\Theta = \{X,Z\}$. 
+
+This is best illustrated through an example. Let's say we have a two poses, $x_1$ and $x_2$. The first pose we have an initial guess on, $p(x_1)$, and $x_1$ is also measured. Call this measurement $z_1$, with measurement model $p(z_1|x_1)$. In addition we have a conditional probability distribution on the second pose given the first, $p(x_2|x_1)$. This is the motion model. 
+
+In addition there are two landmarks, $m_1$ and $m_2$, with pdfs on their location $p(m_1)$ and $p(m_2)$. In the first pose the agent measured the location of $m_1$ relative to himself. Call this measurement $z_2$. It has a measurement model that depends on both the landmark and the pose of the agent, $p(z_2|x_1,m_1)$. Similarily the agent also measured $m_2$ from pose $x_1$ and from pose $x_1$. Call these measurements $z_3$ and $z_4$ respectively, with corresponding measurement models, $p(z_3|x_1,m_2)$ and $p(z_4|x_2,m_2)$. 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{0_Images/3_Background/BayesNet.pdf}
+    \caption[Example of a Bayes net.]
+    {Example of a Bayes net, used for a simple SLAM problem. The $x_i$'s represent poses, $z_i$'s represent measurements and $m_i$'s represent landmarks.}
+    \label{Fig:BayesNet}
+\end{figure}
+
+This is represented as a Bayes net in figure \ref{Fig:BayesNet}. Here the arrows imply that the variable being pointed to depends on the variable the arrow points away from. This way all the conditional probabilities are easy to see. The Bayes net leads to the following factorization of the joint distribution
+
+\begin{align}
+    p(X,Z) = \; & p(x_1)p(x_2|x_1) \\
+    \times \; &p(m_1)p(m_2) \nonumber \\
+    \times \; &p(z_1|x_1) \nonumber \\
+    \times \; &p(z_2|x_1,m_1) \nonumber \\ 
+    \times \; &p(z_3|x_1,m_2)p(z_4|x_2,m_2) \nonumber 
+\end{align}
+
+In a SLAM setting one usually don't have any priors on the map or the pose, so $p(x_1)$, $p(m_1)$ and $p(m_2)$ are dropped. 
+
+The 
