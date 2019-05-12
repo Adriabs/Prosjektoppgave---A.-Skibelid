@@ -285,17 +285,15 @@ Even though the Bayes net gives a nice way of representing the problem that is e
 
 A factor graph is a special type of bipartite graph. A bipartite graph is a graph that can be divided into two disjoint and independent sets, where each node in one set has edges to nodes in the other set, but not any edges connecting them to nodes in the same set. The two sets of nodes in a factor graph are factors $\phi_i\in \mathcal{U}$ and variables $x_j\in \mathcal{V}$. Since it is bipartite, edges $e_{ij}\in \mathcal{E}$ are therefore only between factors and variables. 
 
-The set of variables that have edges to a certain factor $\phi_i$ is written as $X_i$. The factor graph now represent a factorization of a function $\phi(X)$ as the product of all the factors, where each factor is a function of only the variables that have edges to it.
+The set of all the variables that have edges to a certain factor $\phi_i$ is written as $\Theta_i$, which is a subset of the set of all the variables $\Theta = \{X,m\}$. The factor graph now represent a factorization of a function $\phi(\Theta)$ as the product of all the factors, where each factor is a function of only the variables that have edges to it.
 
 \begin{equation}
-    \phi(X) = \prod_i \phi_i(X_i)
+    \phi(\Theta) = \prod_i \phi_i(\Theta_i)
 \end{equation}
 
-Here $X$ referes to the total set of variables. 
+A Bayes net can be converted to a factor graph through a simple transformation. Every node in the net that is not given is split into two; a variable and a factor. The given variables are simply ommited, and become fixed parameters in the factors. 
 
-A Bayes net can be converted to a factor graph through a simple transformation. Every node in the net that is not given is split into two; a variable and a factor. The given information is simply ommited, and become fixed parameters in the factors. 
-
-This means that in the example in figure \ref{Fig:BayesNet}, since the measurements are given, they are absorbed into the nodes adjacent to them. The rest of the nodes, i.e. the poses and the landmarks are split into variables and factors, with variables that used to be connected via a measurement now being connected to the same factor. The corresponding factor graph of the above example is shown in figure \ref{Fig:FactorGraph}.
+This means that in the example in figure \ref{Fig:BayesNet}, since the measurements are given, they are absorbed into the nodes adjacent to them. The rest of the nodes, i.e. the poses and the landmarks are split into variables and factors. Variables that used to be connected via a measurement are now connected to the same factor. The corresponding factor graph of the above example is shown in figure \ref{Fig:FactorGraph}. Here a dot indicates a factor. There are factors for each of the landmark measurements and for the measured initial pose as well as the relative pose between $x_1$ and $x_2$. There are also factors for the prior on the initial pose and priors on the landmarks.
 
 \begin{figure}
     \centering
@@ -304,3 +302,52 @@ This means that in the example in figure \ref{Fig:BayesNet}, since the measureme
     {Example of a factor graph, obtained by converting the Bayes net example in figure\ref{Fig:BayesNet} into a factor graph.}
     \label{Fig:FactorGraph}
 \end{figure}
+
+\subsubsection{Inference on factor graphs}
+
+The great thing about the factor graph representation is that now the MAP estimate of all the variables $\Theta$ in the factor graph is simply
+
+\begin{align}
+    \Theta^{MAP} &= \argmax_{\Theta} \phi(\Theta) \\
+    &= \argmax_{\Theta}\prod_i \phi_i(\Theta_i)
+\end{align}
+
+In the case of likelihood factors derived from measurements corrupted by zero-mean, normally distributed noise, as discussed above, the factors take the form
+
+\begin{equation}
+    \phi_i(\Theta_i) \propto exp(-\frac{1}{2}||h_i(\Theta_i) - z_i||_{\Sigma_i}^2)
+\end{equation}
+
+To avoid numerical errors stemming from adding numbers of very different order of magnitude, we take the negative log of this and drop the factor of $1/2$. This gives us the following minimization objective
+
+\begin{equation}
+    \Theta^{MAP} = \argmin_{\Theta}\sum_i ||h_i(\Theta_i) - z_i||_{\Sigma_i}^2
+\end{equation}
+
+This amounts to a nonlinear least-squares. This problem can be solved by nonlinear optimization methods such as Steepest Descent, Gauss-Newton, Levenberg-Marquardt or Dogleg minimization, and will converge to a global minima if given a good initial guess. Nocedal and Wright\cite{NumOpt} has an excellent book on the subject if more information is needed. Most of the optimization methods linearize the cost function and use this to find a step that takes them closer to the minimum, but as long as the factors are analytically expressed the whole cost function $\phi(\Theta)$ is possible to evaluate. This means that methods based on random sampling, like Markov Chain Monte Carlo and Gibbs sampling\cite{SamplingOpt} might also be suitable. 
+
+Linearizing the above cost-function around the current estimate $\Theta^0$, leads to a linear least-squares problem giving the optimal step in state $\Delta*$
+
+\begin{align}
+    \Delta* &= \argmin_{\Delta}\sum_i ||h_i(\Theta_i^0) + H_i\Delta_i - z_i||_{\Sigma_i}^2 \\ 
+    &= \argmin_{\Delta}\sum_i || H_i\Delta_i - (z_i - h_i(\Theta_i^0))||_{\Sigma_i}^2
+\end{align}
+
+where $z_i - h_i(\Theta_i^0)$ is the error between the actual and predicted measurement given the estimate of the relevant variables. By a change of basis, scaling the different variables so the optimization becomes a sum of euclidian norms, this can again be rewritten as 
+
+\begin{align}
+    \Delta* &= \argmin_{\Delta}\sum_i||A_i\Delta_i - b_i||_2^2 \\
+    &= \argmin_{\Delta}||A\Delta - b||_2^2
+\end{align}
+
+This equates to solving the following for the optimal step $\Delta*$
+
+\begin{equation}
+    (A^TA)\Delta* = A^Tb
+\end{equation}
+
+This can be done through QR or Cholesky factorization. In SLAM however the matrix A, and the resulting information matrix $A^TA$ are usually really sparse, since each factor only depends on a small set of variables. This can be used to speed up the optimization, using sparse factorization schemes like sparse Cholesky or LDL factorization\cite{SparseLinearAlgebra}. 
+
+\subsubsection{iSAM2}
+
+Throughout the above discussion the factor graph was applied to the problem of offline or batch SLAM, where the desired objective is to find the set of poses and landmarks that is most probable, given all the measurements. This is however not the same setting as Revolve NTNU is fased with.
