@@ -182,7 +182,7 @@ Where C is a normalizing constant. This gives that the importance weights are ca
 
 According to \cite{SLAMIntro} this leads to a weighting function that is locally optimal. This means that it gives the smallest posible variance in the weight $w_{k,i}$, given $X_{0:k-1,i}$, $Z_{0:k}$ and $U_{0:k}$.
 
-\subsection{Factor graphs}
+\subsection{Factor graph based approaches}
 
 Talk about bayesian networks, how they're nice for representing the problem but unfit for doing the optimization. Talk about the graphical extension to bayesian networks that factor graphs are, how they solve the problem and how they represent all the different data. Maybe also a part about how they allow us to do optimization on only a small part of the problem at a time. 
 
@@ -192,7 +192,7 @@ Talk about how since we are doing featureless SLAM we need some sort of front en
 
 One new developement in the SLAM community is the developement of factor graph based approaches. This is by many considered state of the art, and some of the algorithms to come out of this approach tackles issues that haven't been possible to solve other ways. In the following the factor graph and some of the algorithms that uses it are explained. The subject is graphical in nature, and a few examples are therefore in place. Many of the main points of the discussion are paraphrased from Frank Dellaert's amazing book on the subject\cite{Dellaert}. \todo{Is this okay to say?}
 
-\subsection{Bayesian network}
+\subsubsection{Bayesian network}
 
 One very intuitive way of representing the SLAM problem is through a Bayesian network, or Bayes net for short. It's a graphical way of representing a joint probability density function that easily shows the different conditionings and relationships between variables. 
 
@@ -202,7 +202,7 @@ To be more precise, a Bayes net tries to model the joint pdf, $p(\theta)$, of al
     p(\Theta) = \prod_j p(\theta_j|\pi_j)
 \end{equation}
 
-where $\pi_j$ is the set of variables that $\theta_j$ depends on. For the offline SLAM problem the variables of interest would be the set of poses, $X$, and set of measurements, $Z$, that the agent has been in and observed, respectively. In other words, $\Theta = \{X,Z\}$. 
+where $\pi_j$ is the set of variables that $\theta_j$ depends on. For the offline SLAM problem the variables of interest would be the set of poses, $X$, and the set of measurements, $Z$, that the agent has been in and observed, respectively, as well as the location of all the landmarks, also known as the map $m$. In other words, $\Theta = \{X,Z,m\}$. 
 
 This is best illustrated through an example. Let's say we have a two poses, $x_1$ and $x_2$. The first pose we have an initial guess on, $p(x_1)$, and $x_1$ is also measured. Call this measurement $z_1$, with measurement model $p(z_1|x_1)$. In addition we have a conditional probability distribution on the second pose given the first, $p(x_2|x_1)$. This is the motion model. 
 
@@ -219,7 +219,7 @@ In addition there are two landmarks, $m_1$ and $m_2$, with pdfs on their locatio
 This is represented as a Bayes net in figure \ref{Fig:BayesNet}. Here the arrows imply that the variable being pointed to depends on the variable the arrow points away from. This way all the conditional probabilities are easy to see. The Bayes net leads to the following factorization of the joint distribution
 
 \begin{align}
-    p(X,Z) = \; & p(x_1)p(x_2|x_1) \\
+    p(\Theta) = \; & p(x_1)p(x_2|x_1) \\
     \times \; &p(m_1)p(m_2) \nonumber \\
     \times \; &p(z_1|x_1) \nonumber \\
     \times \; &p(z_2|x_1,m_1) \nonumber \\ 
@@ -228,4 +228,79 @@ This is represented as a Bayes net in figure \ref{Fig:BayesNet}. Here the arrows
 
 In a SLAM setting one usually don't have any priors on the map or the pose, so $p(x_1)$, $p(m_1)$ and $p(m_2)$ are dropped. 
 
-The 
+How these pdf's look depends on sensor setup and application. The model for a measurement $z_i$ is often assumed to be of the type
+
+\begin{equation}
+    z_i = h(x_k,m_i) + v
+\end{equation}
+
+where $h(x,m_i)$ is the measurement function of the landmark $m_i$ at the pose $x_k$, and $v$ is zero-mean white noise with the so-called measurement covariance $R$. This means the pdf of $z_i$ given $x_k$ and $m_i$ is 
+
+\begin{equation}
+    p(z_i|x_k,m_i) = \frac{1}{\sqrt{2\pi R}}exp(-1/2||h(x_k,m_i) - z_i||^2_R)
+\end{equation}
+
+The measurement function depends on the sensor used and how the poses and landmarks are represented. For a bearing measurement in the plane, with landmarks being two-dimensional vectors and the pose represented as a point in the plane and a heading, the measurement function could be represented as
+
+\begin{equation}
+    h(x_k,m_i) = atan2(m_{i,y} - x_{k,y},m_{i,x} - x_{k,x})
+\end{equation}
+
+Similarily for the pdf of the pose step, it is often modeled as a gaussian, but now using the motion model, $g(x_k,u_k)$ instead of the measurement function. 
+
+\begin{equation}
+    p(z_i|x_k,m_i) = \frac{1}{\sqrt{2\pi R}}exp(-1/2||g(x_k,u_k) - z_i||^2_R)
+\end{equation}
+
+In Revolve's case the input can be thought of as the estimated body linear and angular velocities $v_{x,k}$, $v_{y,k}$ and $r_k$ at step $k$. Then the motion model becomes 
+
+\begin{equation}
+    \begin{bmatrix} x_k \\ y_k \\ \psi_k \end{bmatrix} = \begin{bmatrix} x_{k-1} \\ y_{k-1} \\ \psi_{k-1} \end{bmatrix} + \begin{bmatrix} cos(\psi_{k-1})v_{x,k} - sin(\psi_{k-1})v_{y,k} \\
+    sin(\psi_{k-1})v_{x,k} + cos(\psi_{k-1})v_{y,k} \\ r
+    \end{bmatrix} dt
+\end{equation}
+
+where $dt$ is the time increment.
+
+\subsubsection{MAP}
+
+The Bayes net has given us a way of setting up the joint probability density function for both the pose, landmarks and measurements. In SLAM we are typically interested not in this joint pdf, but in the set of poses and landmark locations that maximizes the joint pdf, given the measurements. The usual way of estimating these values is to use the maximum a posteriori (MAP) estimate. In offline SLAM this equates to finding the estimated path, $X$, and map, $m$, that maximizes the conditional density $p(X,m|Z)$. I.e.
+
+\begin{align}
+    (X,m)^{MAP} &= \argmax_{X,m}p(X,m|Z) \\
+    &= \argmax_{X,m}\frac{p(Z|X,m)p(X,m)}{p(Z)}
+\end{align}
+
+The second equality is simply using Bayes rule. Since the measurements are given, we drop the normalization constant $p(Z)$. This gives
+
+\begin{equation}
+    (X,m)^{MAP} = \argmax_{X,m}l(Z|X,m)p(X,m)
+\end{equation}
+
+where the first term, $l(Z|X,m)$ is no longer a proper pdf, but now just a likelihood function proportional to $p(Z|X,m)$. Note that in general, conditioning on the measurements means the likelihood function does not look like a gaussian.\todo[inline]{Remove last sentence? Blatant rip off of Dellaert.} 
+
+Even though the Bayes net gives a nice way of representing the problem that is easily understandable, it offers no good way of doing inference, like finding the MAP estimate. This is the reason why factor graphs have been developed, as the way they are built lends room for optimizations like this.
+
+\subsubsection{Factor graphs}
+
+A factor graph is a special type of bipartite graph. A bipartite graph is a graph that can be divided into two disjoint and independent sets, where each node in one set has edges to nodes in the other set, but not any edges connecting them to nodes in the same set. The two sets of nodes in a factor graph are factors $\phi_i\in \mathcal{U}$ and variables $x_j\in \mathcal{V}$. Since it is bipartite, edges $e_{ij}\in \mathcal{E}$ are therefore only between factors and variables. 
+
+The set of variables that have edges to a certain factor $\phi_i$ is written as $X_i$. The factor graph now represent a factorization of a function $\phi(X)$ as the product of all the factors, where each factor is a function of only the variables that have edges to it.
+
+\begin{equation}
+    \phi(X) = \prod_i \phi_i(X_i)
+\end{equation}
+
+Here $X$ referes to the total set of variables. 
+
+A Bayes net can be converted to a factor graph through a simple transformation. Every node in the net that is not given is split into two; a variable and a factor. The given information is simply ommited, and become fixed parameters in the factors. 
+
+This means that in the example in figure \ref{Fig:BayesNet}, since the measurements are given, they are absorbed into the nodes adjacent to them. The rest of the nodes, i.e. the poses and the landmarks are split into variables and factors, with variables that used to be connected via a measurement now being connected to the same factor. The corresponding factor graph of the above example is shown in figure \ref{Fig:FactorGraph}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{0_Images/3_Background/FactorGraph.pdf}
+    \caption[Example of a Bayes net.]
+    {Example of a factor graph, obtained by converting the Bayes net example in figure\ref{Fig:BayesNet} into a factor graph.}
+    \label{Fig:FactorGraph}
+\end{figure}
