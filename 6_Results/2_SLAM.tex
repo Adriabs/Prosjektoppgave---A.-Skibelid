@@ -1,6 +1,6 @@
 \section{SLAM}
 
-We don't really have too many results to show in regards to the SLAM, as we don't get to test it on anything else than simulator until the car is ready, which is going to be some time after this project thesis is delivered. 
+We do not really have too many results to show in regards to the SLAM, as we do not get to test it on anything else than simulator until the car is ready, which is going to be some time after this project thesis is delivered. 
 
 Possible things I can plot:
 \begin{itemize}
@@ -9,7 +9,7 @@ Possible things I can plot:
     \item Size of hypotheses-list over time?
 \end{itemize}
 
-When simulating with false positives generated with a random gaussian position, the frontend doesn't let any false positives through. This is of course not the best metric for performance, since detection systems don't really send false positives with completely random position. The ones they send are usually because of objects around the track, like walls, and will be spatially correlated. This means that the frontend will have to deal with false positives that cluster around partiular areas. Detection data from last year shows that the false positives that get detected usually jump around a lot, so hopefully the frontend will spawn many new hypotheses that loose confidence, instead of associating to the same false positive and evntually sending it through to the backend. This is not possible to test at the moment unfortunately, since the data from last year isn't compatible with the current system. 
+When simulating with false positives generated with a random gaussian position, the frontend does not let any false positives through. This is of course not the best metric for performance, since detection systems don't really send false positives with completely random position. The ones they send are usually because of objects around the track, like walls, and will be spatially correlated. This means that the frontend will have to deal with false positives that cluster around partiular areas. Detection data from last year shows that the false positives that get detected usually jump around a lot, so hopefully the frontend will spawn many new hypotheses that loose confidence, instead of associating to the same false positive and evntually sending it through to the backend. This is not possible to test at the moment unfortunately, since the data from last year isn't compatible with the current system. 
 
 \begin{figure}
     \centering

@@ -1,20 +1,20 @@
 \section{State estimation}
-%\subsection{Previous work}
-Nevn EKF, unscented particle filter, unscented EKF, classical approach, forskjellige papers som tar for seg deler av det vi ønsker å gjøre, men ikke alt. Nevn også at Automatica08 gjør nesten alt, men ikke gjør bank og inclination estimation, mens MainStateEst gjør alt unntatt yaw rate estimation, så vi ender opp med å snekre sammen begge disse. Nevn også at en del av arbeidet faktisk ikke blir gjort i de to direkte, men i imsland osv. Nevn også at EKF trenger mer tuning og mer beregningskraft. Muligens si det i neste subsubsection som en motivasjon for valg av approach. 
 
-State estimation in general usually referes to the following problem: Given a general nonlinear system 
+State estimation in general usually referes to the following problem: \todo[inline]{Omformuler general problem.} Given a general nonlinear system 
 
 \begin{equation}
     \Dot{x} = f(x,u(t), w(t))
 \end{equation}
 
-where $x$ is the state, $u(t)$ is the input at time $t$ and $w(t)$ is the noise input, and a nonlinear measurement function
+where $x$ is the state, $u(t)$ is the input at time $t$ and $w(t)$ is the noise input; a nonlinear measurement function
 
 \begin{equation}
     y = h(x,v(t))
 \end{equation}
 
-where $y$ is the measurement and $v(t)$ is measurement noise. In the specific case met by Revolve NTNU the states we want to approximate are the linear and angular velocities, which are then to be integrated up to give an initial estimate of the position, that is later to be corrected by SLAM.
+where $y$ is the measurement and $v(t)$ is measurement noise and an initial value $x_0$ for the state, make an estimator for the state or part of the state that converges to the true value over time.
+
+In the specific case met by Revolve NTNU the states we want to approximate are the linear and angular velocities, which are then to be integrated up to give an initial estimate of the position, that is later to be corrected by SLAM.
 
 The general field of state estimation is a broad one, that has been studied extensively. Below is detailed some general state estimation algorithms and design methodologies, as well as some that are more specific to our case. Some of the algorithms make more assumptions on the dynamical model, measurement function and the model and measurement noise, and thus it must be evaluated if it fits the specific problem at hand before it is chosen. 
 
@@ -28,11 +28,11 @@ This very crude approximation gave ok results at very low speeds, but did not wo
 
 One could argue that the Kalman filter is the most widely used and most successfull algorithms to ever come out of the control comunity. It is ubiquitous, showing up in everything from cars to cell phones. What it is at its core is a way of combining sensor data and knowledge of a dynamical system, to get a better estimate of its states, even when faced with noise. 
 
-A kalman filter uses a dynamical model of a system, as well as knowledge of the noise that influences it, and is capable of combining several different types of sensors, making it a very powerfull and easy way of doing sensor fusion. It estimates how the system will develop, propagating not only its states, but also its covariance. This makes it able to know optimally how much it should give weight to measurements compared to the estimates coming out of integrating the dynamical model. 
+A kalman filter uses a dynamical model of a system, as well as knowledge of the noise that influences it, and is capable of combining several different types of sensors, making it a very powerful and easy way of doing sensor fusion. It estimates how the system will develop, propagating not only its states, but also its covariance. This makes it able to know optimally how much it should give weight to measurements compared to the estimates coming out of integrating the dynamical model. 
 
-The kalman filter is said to be the optimal estimator when applied to a linear system, or a system that is linearized around it's true solution. The latter is of course not possible, since if we had the true solution we wouldn't need to estimate the states of the system. It does however mean that if we aren't far away from the solution, it will still be a good estimate. Doing so gives an extended Kalman filter\cite{EKF}, and is what is most used, considering most systems in the real world aren't truly linear systems.  
+The kalman filter is proven to be the optimal estimator when applied to a linear system, or a system that is linearized around it's true solution. The latter is of course not possible, since if we had the true solution we wouldn't need to estimate the states of the system. It does however mean that if we aren't far away from the solution, it will still be a good estimate. Doing so gives an extended Kalman filter\cite{EKF}, and is what is most used, considering most systems in the real world aren't truly linear systems.  
 
-To be more specific, the Kalman filter consists of a linear or linearized system with a transition matrix for each time step $k$, $F_{k}$, a way of influencing the system through the actuator $u_k$, represented as a matrix $B_{k}$. Together they give the apriori estimate of the state
+To be more specific, the Kalman filter consists of a linear or linearized system with a transition matrix for each time step $k$, $F_{k}$, a way of influencing the system through the actuator $u_k$, represented as a matrix $B_{k}$. Together they give the a priori estimate of the state
 
 \begin{equation}
     \hat{x}_{k|k-1} = F_k\hat{x}_{k-1|k-1} + B_k u_k
@@ -211,7 +211,7 @@ Yet another option is ORB-SLAM2\cite{ORBSLAM}, which uses ORB features\cite{ORB}
 
 Instead of using the camera information to get a visual odometry, one could apply the same set of ideas to the point cloud coming out of the LiDARs. This gives what is known as LiDAR Odometry. 
 
-The most known, publicly available, algorithm at the moment is LOAM\cite{LOAM}. It, much like ORB-SLAM, finds feature points that it can match in successive swipes of the LiDAR, that then gives point to point distance estimates. These distance estimates are then added iteratively to a set of distances, a single step of a nonlinear optimizer tries to find the pose change between frames. Distance estimates are added untill the optimization step converges. 
+The most known, publicly available, algorithm at the moment is LOAM\cite{LOAM}. It, much like ORB-SLAM, finds feature points that it can match in successive swipes of the LiDAR, that then gives point to point distance estimates. These distance estimates are then added one by one iteratively to a set of distances, and a single step of a nonlinear optimizer tries to find the pose change between frames. Distance estimates are added until the optimization step converges. 
 
 A very recent development is DeepLO\cite{DeepLO}, where they use neural nets, with both supervised and unsupervised training to achieve very good performance on the KITTI dataset. There is however, as of now, no code open to the public.
 
@@ -236,7 +236,7 @@ Different types of nonlinear observers that are benefitial to mention
 \end{itemize}
 \fi
 
-The term nonlinear observer refers to any dynamical system run in parallel with a dynamical system, where some or all of the internal states of the nonlinear observer tries to match some or all the states of the original dynamical system. There are mountains of different nonlinear observers, as this is a very general term. 
+The term nonlinear observer refers to any dynamical system run in parallel with a dynamical system, where some or all of the internal states of the parallel systemt tries to match some or all the states of the original dynamical system. There are mountains of different nonlinear observers, as this is a very general term. 
 
 To separate the different types of observers, it is benefitial to do so by how they have been derived. This makes it possible to talk about each class' general properties, their pros and cons, especially in regards to ease of derivation for a specific system, how much tuning there is and overall performance.
 
@@ -268,7 +268,7 @@ will give exponential convergence of the estimate, $\hat{x}$, to the true state,
     C = \frac{\partial h}{\partial x}|_{x=x_0}
 \end{equation}
 
-where again $f$ is the state transition function and $h$ is the measurement function. This will however only give local asymptotic stability when the $A-LC$ is Hurwitz and the pair $\{A,C\}$ is observable. Many of the relevant dynamical systems do not have this property, nor is local asymptotic stability always enough, so the research community searched on for more sophisticated solutions with better properties. 
+where again $f$ is the state transition function and $h$ is the measurement function. This will however only give local asymptotic stability when the $A-LC$ is Hurwitz and the pair $\{A,C\}$ is observable. Many of the relevant dynamical systems do not have this property, nor is local asymptotic stability always enough, so the research community has looked for more sophisticated solutions with better properties. 
 
 \iffalse
 One of the next steps the community took was to develop the statistically motivated methods, most prominent and succesfull of which is the Extended Kalman filter. These methods are typically so-called expanded order observers, meaning they have more internal states than the system that it is trying to approximate the states of. In the case of the Kalman filter these internal states are $\{\hat{x},P\}$, which illustrates usual approach taken by these methods; to approximate not only the state of the system, but also the underlying probability distribution it comes from. 
@@ -313,15 +313,15 @@ A similar approach is the so called High Gain Observer\cite{HighGain}, which get
 
 A more recent developement, spearheaded in part by the research community here at NTNU, is the use of Lyapunov anaysis to develop nonlinear observers that converge asymptotically to the true state\cite{PassiveFossen}. Made first for Dynamic Positioning (DP) of large boats, it consists of starting out with an initial guess for an observer, then trying to prove it's stability by Lyapunov analysis and then modifying the observer until stability can be proven. 
 
-By Lyapunov analysis\cite{Lyapunov} is meant the process of finding a Lyapunov function candidate $V(\Tilde{x})$ that is positive definite, i.e. larger than or equal to zero for all $x\neq \Vec{0}$. Here $\Tilde{x}$ is the error between the true state and the estimate. The proof is then to show that this function has the special property that
+By Lyapunov analysis\cite{Lyapunov} is meant the process of finding a Lyapunov function candidate $V(\Tilde{x})$ that is positive definite, i.e. larger than or equal to zero for all $\Tilde{x}\neq \Vec{0}$. Here $\Tilde{x}$ is the error between the true state and the estimate. The proof is then to show that this function has the special property that
 
 \begin{equation}
     \frac{dt V(\Tilde{x})}{dt} \leq 0 \;\; \forall \hat{x}
 \end{equation}
 
-If such a Lyapunov function can be found and this property holds, then the error will always go asymptotically to zero and the observers works as desired. Other properties as also possible to derive with slight changes to the analysis formulation, but this is the main way it is used. \todo{Double check math here and consider rewriting} \todo{Maybe add parts about I/O stability proofs and GES?}. 
+If such a Lyapunov function can be found and this property holds, then the error will always go asymptotically to zero and the observers works as desired. Other properties are also possible to derive with slight changes to the analysis formulation, but this is the main way it is used. \todo{Double check math here and consider rewriting} \todo{Maybe add parts about I/O stability proofs and GES?}. 
 
-One of the main reasons for choosing a nonlinear observer over a Kalman filter is that once the observer is developed it needs much less tuning than the Kalman filter. An example is the 120 covariance equations in the Kalman filter for the supply vessel discussed in \cite{PassiveFossen}, compared to the 17 gains in the nonlinear observer. Another huge benefit compared to the EKF is global asymptotic stability and sometimes global exponential stability, compared to only local symptotic stability of the EKF. 
+One of the main reasons for choosing a nonlinear observer over a Kalman filter is that once the observer is developed it needs much less tuning than the Kalman filter. An example is the 120 covariance equations in the Kalman filter for the supply vessel discussed in \cite{PassiveFossen}, compared to the 17 gains in the nonlinear observer. Another huge benefit compared to the EKF is global asymptotic stability and sometimes local exponential stability, compared to only local symptotic stability of the EKF. 
 
 For a system of the form 
 

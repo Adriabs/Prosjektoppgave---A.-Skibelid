@@ -10,15 +10,15 @@ The extrinsic parameters, i.e. the transformation from the camera to the CG, whe
     \includegraphics[width=0.5\linewidth]{0_Images/4_Implementation/aprilgrid.pdf}
     \caption[Aprilgrid, the grid used for camera calibration.]
     {Aprilgrid, the grid used for camera calibration.}
-    \label{Fig:psiErrorCamera}
+    \label{Fig:AprilGrid}
 \end{figure}
 
 \subsubsection{IMU}
 
-Even though the IMU came with a factory calibration, it was a general one supposed to cover all Vectornav VN300s. So, in order to get a better measurement covariance matrix to send to the built in Kalman filter in the IMU, steps were taken to find the covariance of this specific device. This was done by again using the Kalibr toolbox, but this time for IMU calibration. The device was left alone on a vibration free desk for 8 hours, while recording its output. The output where sent through Kalibr, and the new estimate of the covariance matrix was outputted. This was in turn set to the default value of the VN300. 
+Even though the IMU came with a factory calibration, it was a general one supposed to cover all Vectornav VN300s. So, in order to get a better measurement covariance matrix to send to the built in Kalman filter in the IMU, steps were taken to find the covariance of this specific device. This was done by again using the Kalibr toolbox, but this time for IMU calibration. The device was left alone on a vibration free desk for 8 hours, while recording its output. The output was sent through Kalibr, and the new estimate of the covariance matrix was outputted. This was in turn set to the default value of the VN300. 
 
-Finding the transformation from the IMU to the body frame was easy as the IMU was placed at what CAD-models in SolidWorks said was the CG. This was done so some of the math in the state estimation algorithm should become easier.
+Finding the transformation from the IMU to the body frame was easy as the IMU was placed at what CAD-models in SolidWorks said was the CG. This was done so some of the math in the state estimation algorithm would become easier.
 
 \subsubsection{LiDARS}
 
-To find the transformation from the two LiDARs to the body frame, the transformation from one of them to CG was found by hand measurements. The other one was found by having both LiDARs see a thin stick held stationary. One of the LiDARs where then transformed by trial and error until they both output the same value for the location of the stick. The reaso
+To find the transformation from the two LiDARs to the body frame, the transformation from one of them to CG was found by hand measurements. The other one was found by having both LiDARs see a thin stick held stationary. One of the LiDARs where then transformed by trial and error until they both output the same value for the location of the stick. 

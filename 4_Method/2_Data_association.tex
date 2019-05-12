@@ -151,13 +151,13 @@ This makes the covariance get smaller if the measurement and previous estimate a
 
 \subsubsection{Lack of association}
 
-If a hypothesis isn't associated to when a new set of detections arrive, its confidence is decreased. How much it's decremented by is a function of which detection system this set of detections came from, and whether or not this hypothesis is in the field of view of the detection system. If it is then the confidence is decremented by a number that is a function of distance. 
+If a hypothesis is not associated to when a new set of detections arrive, its confidence is decreased. How much it is decreased by is a function of which detection system this set of detections came from, and whether or not this hypothesis is in the field of view of the detection system. If it is then the confidence is decreased by a number that is a function of distance. 
 
-This last part has not been implemented yet, just like the initial confidence function, because we yet have no proper estimates of ratio between false positives and true positives as a function of distance. 
+This last part has not been implemented yet, just like the initial confidence function, because we yet have no proper estimates of ratio between false positives and true positives as a function of distance. Hopefully this changes in the testing period.
 
 \subsubsection{Belief correction}
 
-When a hypothesis' confidence climbs above a threshold it is accepted as an inlier and all the measurements of it are sent to SLAM as measurements of a new landmark. Similarily when the confidence goes below a threshold it is discarded. A hypothesis is also discarded when it's spatial gets too big. This is because we don't want ambiguity when associating measurements to the hypotheses. 
+When a hypothesis' confidence climbs above a threshold it is accepted as an inlier and all the measurements of it are sent to SLAM as measurements of a new landmark. Similarily when the confidence goes below a threshold it is discarded. A hypothesis is also discarded when its spatial covariance gets too big. This is because we do not want ambiguity when associating measurements to the hypotheses. 
 
-The remaining measurements are then initialized as a new hypothesis. It is given an initial confidence that is a function of detection method and distance from the car. This is because when we plot the ratio between true positive and false positives, this ratio goes down as the distance increases. Thus the confidence is initialized at a lower value when the cone is further away. 
+The remaining measurements are then initialized as a new hypothesis. It is given an initial confidence that is a function of detection method.
 

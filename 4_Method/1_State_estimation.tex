@@ -13,11 +13,11 @@ To estimate the longitudinal velocity the following observer was used
 \begin{equation}
     \dot{\hat{v}}_x = a_x + \dot{\psi}\hat{v}_y + K_{v_x}(t)(v_{x,rpm} - \hat{v}_x)
 \end{equation}
-where $\hat{v}_x$ is our estimate of longitudinal velocity $v_x$; $a_x$ is the measured longitudinal acceleration; $\psi$ is the yaw angle and $K_{v_x}(t)$ is a time varying gain, chosen to downweight the velocity calculated from the wheel rpms when the estimates have a high variance. $v_{x,rpm}$ is calculated as 
+where $\hat{v}_x$ is our estimate of longitudinal velocity $v_x$; $a_x$ is the measured longitudinal acceleration from the IMU; $\dot{\psi}$ is our estimate of the rate of change of the yaw angle and $K_{v_x}(t)$ is a time varying gain, chosen to downweight the velocity calculated from the wheel rpms when the estimates have a high variance. $v_{x,rpm}$ is calculated as 
 \begin{equation}
     v_{x,rpm} = mean(\sum_{i=1}^{4} \omega_{i}R_{eff,i}(t))
 \end{equation}
-where $\omega_i$ is the angular velocity of wheel i and $R_{eff,i}(t)$ is the effective wheel radius of wheel $i$ at time $t$. The wheel radius is a function of ride height only, as the expansion of the tyre due to an increase in rotational speed was deemed negligible. The wheel radius of wheel $i$ is calculated using the so called Magic Formula 5.2 for tire radius \cite{MagicFormula5_2}
+where $\omega_i$ is the angular velocity of wheel i and $R_{eff,i}(t)$ is the effective wheel radius of wheel $i$ at time $t$. The wheel radius is a function of ride height only, as the expansion of the tyre due to an increase in rotational speed was deemed negligible. The wheel radius of wheel $i$ is calculated using the so called Magic Formula 5.2 for the tire radius \cite{MagicFormula5_2}
 
 \begin{equation}
     R_{eff,i}(t) = R_0 - (R_0-R_{L800N}([D_{R_{eff}}atan(B_{R_{eff}}\rho) + \\ F_{R_{eff}}\rho]
@@ -27,10 +27,10 @@ with
     \rho = \frac{R_0-R_l(t)}{R_0-R_{L800N}}
 \end{equation}
 
-The coefficients $D_{R_{eff}}, B_{R_{eff}}$ and $F_{R_{eff}}$ where in the tyres datasheet, and $R_0$ and $R_{L800N}$ where found empirically. $R_0$ is the radius when unloaded, while $R_{L800N}$ is the mean of the radius of the wheel when loaded with 800N and in different angles. $R_l(t)$ is the current distance from the wheel centrum to the ground, either measured by a ride height sensor, or estimated using estimates of the wheel loads.
+The coefficients $D_{R_{eff}}, B_{R_{eff}}$ and $F_{R_{eff}}$ where in the tyres datasheet, and $R_0$ and $R_{L800N}$ where found empirically. $R_0$ is the radius when unloaded, while $R_{L800N}$ is the radius of the wheel when loaded with 800N, averaged over measurements in different angles. $R_l(t)$ is the current distance from the wheel centrum to the ground, either measured by a ride height sensor, or estimated using estimates of the wheel loads.
 
 \subsubsection{Lateral velocity} 
-To estimate the lateral velocity, an estimate of the lateral forces is first made, by using the pure lateral magic formula 5.2 \cite{MagicFormula5_2}. This assumes that the longitudinal acceleration is negligible when cornering, but since the controller is told to never accelerate in corners, this assumption is always satisfied. The only time when the controller does accelerate when cornering is when the emergency brake has been turned on, in which case the state estimation isn't going to be used anyways and the whole system needs to be rebooted. 
+To estimate the lateral velocity, an estimate of the lateral forces is first made, by using the pure lateral magic formula 5.2 \cite{MagicFormula5_2}. This assumes that the longitudinal acceleration is negligible, but since the controller is told to never accelerate in corners, this assumption should be satisfied when it matters. The only time when the controller does accelerate when cornering is when the emergency brake has been turned on, in which case the state estimation isn't going to be used anyways and the whole system needs to be rebooted. 
 
 The magic formula gives the lateral force on each wheel in the wheel frame. These are then rotated into the body-fixed frame located in the center of gravity (CG), and summed to find the total lateral acceleration. This is done by doing the following calculation
 
@@ -49,7 +49,8 @@ The above calculation gives the lateral force, which is then divided by $(1 + p_
     \dot{\hat{v}}_y = a_y - \dot{\hat{\psi}}\hat{v}_x + K_{v_y}\xi(t,\hat{x})\Lambda(a_y - \theta a_y^{*}) + \frac{\Gamma_2}{\Gamma_1}\zeta(\dot{\psi} - \dot{\hat{\psi}})
 \end{equation}
 
-where $\Gamma_1$ and $\Gamma_2$ are positive gain, $\xi(t,\hat{x})$ is a time varying gain that gives how much faith is put in the magic formula estimated acceleration. We chose
+where $\Gamma_1$ and $\Gamma_2$ are positive gain, $\xi(t,\hat{x})$ is a time varying gain that gives how much faith is put in the magic formula estimated acceleration compared with the one from the IMU. Following the discussion in \cite{MainStateEst}, we chose to use
+
 \begin{equation}
     \xi(t,\hat{x}) = \frac{\delta \hat{a}_y^*}{\delta \hat{v}_y}(t,\hat{x})
 \end{equation}
@@ -60,7 +61,7 @@ $\Lambda$ is a scaling signal that prevents large variations in the gain. We cho
     \Lambda(t,\hat{x}) = (\xi^2(t,\hat{x}) + \hat{a}_y^2(t,\hat{x}))^{-1/2}
 \end{equation}
 
-Similarily $\zeta$ is a gain that determines how much faith we put in the yaw rate estimate determined by the wheel velocities versus the yaw rate measurement coming out of the IMU. More on this later. 
+Similarily $\zeta$ is a gain that determines how much faith we put in the yaw rate estimate determined by the wheel velocities versus the yaw rate measurement coming out of the IMU.
 
 \subsubsection{Yaw rate}
 
@@ -148,11 +149,11 @@ Where $K_{v_X}$ is, as previously defined, how much faith is put in the longitud
 
 Estimating the bank angle and estimating the friction coefficient $\theta$ are conflicting problems, as both are not properly observable at the same time. In \cite{MainStateEst} this is solved by turning of the friction coefficient update when there isn't enough lateral acceleration for it to converge properly, and turning of the bank angle update when estimating updating the friction coefficient. They found that this worked well in most cases, but that when driving in terrain that is both hilly, meaning varying bank angle, and with a low friction coefficient, they needed to estimate both at the same time. 
 
-To do this they developed a rather complex set of rules for when to turn on and of the two different update laws. We believe this is not needed in our case, since we are driving on flat ground with a slowly varying bank angle and a friction coefficient that never goes down as low as theirs did. They were driving on snow and ice, while the worst condition we will face will be wet tarmac, so as long as we estimate the bank angle regularly, there shouldn't be a need to estimate both bank angle and friction coefficient at the same time. 
+To do this they developed a rather complex set of rules for when to turn on and of the two different update laws. We believe this is not needed in our case, since we are driving on flat ground with a slowly varying bank angle and a friction coefficient that never goes down as low as theirs did. They were driving on snow and ice, while the worst condition we will faced with will be wet tarmac. Therefore, as long as we switch between the two update laws regularly, there shouldn't be a need to estimate both bank angle and friction coefficient at the same time. 
 
-We therefore employ the same switching rule for when to update the friction coefficient as \cite{MainStateEst} and simply turn of the bank angle update when friction coefficient is being updated. To determine when to turn on the friction update we estimate the reference yaw rate found by looking at the wheel torques, and an estimate of $\dot{v}_y$. $\dot{\hat{v}}_y$ found by low pass filtering $a_y - \dot{\psi}\hat{v}_x$. A high value for $\dot{v}_y$ indicates a high level of excitation and that some of the tyres might be in the nonlinear region where it's possible to get information about the friction coefficient. When both these values are high enough we turn on friction update and turn off bank angle update. 
+For this reason we employ the same switching rule for when to update the friction coefficient as \cite{MainStateEst} and simply turn of the bank angle update when friction coefficient is being updated. To determine when to turn on the friction update we estimate the reference yaw rate found by looking at the wheel torques, and an estimate of $\dot{v}_y$, called $\dot{\hat{v}}_y$, found by low pass filtering $a_y - \dot{\psi}\hat{v}_x$. A high value for $\dot{\hat{v}}_y$ indicates a high level of excitation and that some of the tyres might be in the nonlinear region where it's possible to get information about the friction coefficient. When both these values are high enough we turn on friction update and turn off bank angle update. 
 
-Ref. \cite{MainStateEst} lets the friction coefficient go exponentially to a nominal value of 1 when it isn't being estimated from the sensor data. They argue that dry tarmac will be the normal operating conditions. We chose instead to simply let the coefficient stay at that value when we aren't updating it from the sensor data, seeing how the ground conditions will change rather slowly.
+Ref. \cite{MainStateEst} lets the friction coefficient go exponentially to a nominal value of 1 when it isn't being estimated from the sensor data. They argue that dry tarmac will be the normal operating conditions. We chose instead to simply let the coefficient stay at that value when we aren't updating it from the sensor data, arguing that the ground conditions will change rather slowly.
 
 \subsubsection{Final observer}
 The full observer has to modes: either it updates the estimate of the bank angle, or it updates the estimate of the friction coefficient. In the first case the full observer is as follows
@@ -165,7 +166,7 @@ The full observer has to modes: either it updates the estimate of the bank angle
     \ddot{\hat{\psi}} & = \frac{1}{J}\theta \hat{f}_r^* + k_r(t)(\dot{\psi}-\hat{\dot{\psi}})
 \end{align}
 
-When updating friction coefficient and not bank angle the observer looks like this
+In the second case, i.e. when updating friction coefficient and not bank angle, the observer uses the following update laws
 
 \begin{align}
     \dot{\hat{v}}_x & = a_x + \dot{\psi}\hat{v}_y + g\hat{\theta}_i + K_{v_x}(t)(v_{x,rpm} - \hat{v}_x) \\
@@ -175,4 +176,4 @@ When updating friction coefficient and not bank angle the observer looks like th
     \ddot{\hat{\psi}} & = \frac{1}{J}\theta \hat{f}_r^* + k_r(t)(\dot{\psi}-\hat{\dot{\psi}})
 \end{align}
 
-Uniform Global Asymptotical Stability (UGAS) and Uniform Local Exponential Stability (ULES) of the error of the estimator for $(v_x,v_y,r,\theta)$ was proven in \cite{Automatica08}, while UGAS of the error for the estimator for $(v_x,v_y,\theta, \theta_i, \theta_b)$ was proven in \cite{MainStateEst}. The first of these implies UGAS and UGES of the full observer of $(v_x,v_y, r,\theta, \theta_i, \theta_b)$, as long as the gains on the bank and inclination angle estimates are small enough, and the estimates of $\theta$, $\theta_i$ and $\theta_b$ are limited to a small enough range. This is because UGAS together with ULES implies a certain robustness to small constant biases, which is the effect a wrong estimate of the bank and inclination angles would add to the update laws for $\hat{v}_x$ and $\hat{v}_y$. 
+Uniform Global Asymptotical Stability (UGAS) and Uniform Local Exponential Stability (ULES) of the error of the estimator for $(v_x,v_y,r,\theta)$ was proven in \cite{Automatica08}, while UGAS of the error for the estimator for $(v_x,v_y,\theta, \theta_i, \theta_b)$ was proven in \cite{MainStateEst}. The first of these implies UGAS and ULES of the full observer of $(v_x,v_y, r,\theta, \theta_i, \theta_b)$, as long as the gains on the bank and inclination angle estimates are small enough, and the estimates of $\theta$, $\theta_i$ and $\theta_b$ are limited to a small enough range. This is because UGAS together with ULES implies a certain robustness to small constant biases, which is the effect a wrong estimate of the bank and inclination angles would add to the update laws for $\hat{v}_x$ and $\hat{v}_y$. 
