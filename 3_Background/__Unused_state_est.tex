@@ -1,0 +1,142 @@
+
+\subsection{Advanced kalman filters}
+There are extensions to the EKF, that gives better properties on some specific problems. One of the most applied of these is the \gls{MEKF}\cite{MEKF}, and its derivations. It deals specifically with the problem of estimating the states of a 6DOF rotating rigid body in euclidian space. 
+
+The algorithm avoids some of the problems, like singularities, of dealing with attitude in a three-variable parametrization like Euler Yaw, Pitch, Roll, by working on a redundant parametrization for the attitude. This removes the singularities, but makes the state update a little more involved. The MEKF represents attitude as the product of an estimated attitude and the deviation from that attitude. Most implementations use a quaternion representation, leading to a product 
+
+\begin{equation}
+    q = \delta q(\phi)\oplus \Hat{q}
+\end{equation}
+
+where $\Hat{q}$ is the unit estimated quaternion and $\delta q(\phi)$ is a unit quaternion representing the rotation from $\Hat{q}$ to the actual attitude $q$, here parametrized by a vector, $\phi$, with three components. The choice of $\phi$ might vary, but usually the small angle approximation
+
+\begin{equation}
+    \delta q(\phi) = \begin{bmatrix} \phi / 2 \\ 1 \end{bmatrix} + \mathcal{O}(||\phi||^2)
+\end{equation}
+
+is used to get the correction on the estimate. The MEKF improves the stability properties of the EKF in attitude estimation by removing some singularities, but there is still room for improvement. A generalised MEKF is thus developed in \cite{GMEKF}, that gives a larger convergence region. 
+
+Another way of avoiding the problems of the three variable parametrization is an Additive Extended Kalman Filter (AEKF), which does the same thing, but through addition of quaternions instead. This has however been proven to be equivalent to the MEKF\cite{AEKF}, and is thus not discussed further.
+
+Yet another extension of the EKF is the Unscented EKF\cite{UKF}. Instead of linearizing the nonlinear state transition function to be able to propagate the covariance, like the EKF does, it uses what is called an Unscented Transformation\cite{UTrans}. This means that instead of assuming that the first order approximation to the nonlinear function is good enough and discarding the rest of the information it can give us, it approximates the state probability distribution by a set of discrete points, called Sigma points. These and the mean are then propagated through the full nonlinear state transition function. This gives a new predicted mean and the propagated sigma points are used to approximate a new distribution in the transformed space, usually a Gaussian. 
+
+The points chosen are carefully picked to perfectly represent the mean and covariance of the original distribution, and thus it is proven to give a third order approximation of the propagated distribution for a nonlinear state transition with additive white noise, compared to only a first order approximation in the EKF. For a non-gaussian distribution this method is still correct to the second order.
+
+One update step of the UKF consists of finding a set of sigma points, $x_{k,i}$, from the original distribution and a set of weights, $w_i$, as follows
+
+\begin{alignat*}{3}
+    & x_{k-1,0} &&= \Bar{x_k} \\
+    & x_{k-1,i} &&= \Bar{x_k} + (\sqrt{(N+\lambda)P_{x,k}}_i, i &&= 1,...,N \\
+    & x_{k-1,i} &&= \Bar{x_k} - (\sqrt{(N+\lambda)P_{x,k}}_{i-N}, i &&=N + 1,...,2N \\
+    & w_{k-1,0}^{(m)} &&= \lambda/(N+\Lambda) \\ 
+    & w_{k-1,0}^{(c)} &&= \lambda/(N+\lambda) + (1-\alpha^2 + \beta) \\
+    & w_{k-1,i}^{(m)} &&= w_{k-1,i}^{(c)} = 1/(2(N+\lambda)), i &&= 1,...,2N
+\end{alignat*}
+
+where $\lambda = \alpha^2(N+\kappa) - N$ is a scaling parameter. $\alpha$ determines the spread of the points around the mean and is usually set to a small positive value (e.g. 0.001). $\kappa$ is a secondary scaling parameter which is usually set to 0, and $\beta$ is used to incorporate prior knowledge about the distribution ($\beta=2$ is optimal for the Gaussian distribution). $P_{x,k-1}$ is the covariance of $x$ at time $k-1$, and N is the number of state space dimensions. 
+
+These points are sent through the nonlinear function, giving a set of new points $y_{k-1,i}$. The new points are then used with the weights to give the new mean and covariance matrix of the new points. 
+
+
+\begin{equation}
+    \Bar{y}_{k-1} \approx \sum_{i=0}^{2N} w_{k,i}^{(m)}y_{k-1,i}
+\end{equation}
+
+\begin{equation}
+    P_{k-1, yy} \approx \sum_{i=0}^{2N} w_{k,i}^{(c)}(y_{k-1,i} - \Bar{y})(y_{k-1,i} - \Bar{y})^T
+\end{equation}
+
+To find the Kalman gain, one also need the covariance of the old state with the new, 
+\begin{equation}
+    P_{k-1, xy} \approx \sum_{i=0}^{2N} w_{k,i}^{(c)}(x_{k-1,i} - \Bar{x})(y_{k-1,i} - \Bar{y})^T
+\end{equation}
+
+and the covariance of the old state with itself,
+
+\begin{equation}
+    P_{k-1,xy} \approx \sum_{i=0}^{2N}w_{k,i}^{(c)}(x_i - \Bar{x})(x_i - \Bar{x})^T
+\end{equation}
+
+All that remains then is to incorporate measurements. To do this one creates the Kalman gain, $K$, much like with the EKF, and use this to weight between the measurement and the estimate.
+
+\begin{equation}
+    K_k = P_{k-1,xy}P_{k-1,yy}^{-1}
+\end{equation}
+
+This then gives us the posterior estimated state
+
+\begin{equation}
+    x_k = x_{k-1} + K_k(z_k - \Bar{y}_{k-1})
+\end{equation}
+
+where $z_k$ is the measured state, $\Bar{y}_{k-1}$ is the a priori estimate of the state and $x_{k-1}$ was the previous a posteriori estimate. To the get new state covariance matrix is then simply
+
+\begin{equation}
+    P_k = P_{k-1,xx} - K_kP_{k-1,xy}K_k^T
+\end{equation}
+
+Although this seems more complicated, it actually is of the same computational order of magnitude as the EKF, and gives a much better approximation.
+
+
+\subsection{Particle filter}
+Another solution to the state estimation problem is the Particle Filter, first introduced in \cite{ParticleFilter} in 1996, but not made viable before 2000, when re-sampling was introduced\cite{ParticleResampling}. It attacks the problem of state estimation from the view point that the best estimate of the state could be gotten if we had the probability density function of the state given the inputs, measurements and measurement model. But since this is not something we usually have analytically, it instead approximates it by a discrete set of particles, where the density of the particles in the state space over time will approximate the true pdf. 
+
+The basic principle of a particle filter is 
+
+\begin{itemize}
+    \item pulling samples (usually called particles) from a prior distribution, 
+    \item weighting them with how much deviation there is from the true distribution, 
+    \item normalising the weights and then re-sampling the particles (with replacement) where the probability of sampling a specific particle is its weight. 
+\end{itemize}
+
+In a state estimation setting this means starting with N particles, distributed in some manner around the state space (usually uniformly). Then every step, $k$, in the particle filter the particles $\{x_{k-1,i}\}$ are propagated according to the state transition function
+
+\begin{equation}
+\forall i, \; \; x_{k,i} = f(x_{k-1,i}, u_k)
+\end{equation}
+
+where $u_k$ is the input at that step. Here some have had good results with adding some noise to the propagation, in order to speed up exploration of the state space\cite{ParticleNoise}. The weighting function, $p(z_k|x_{k,i})$, is the probability of observing the measurement, $z_k$, given the state. This function is given by the measurement model for the different sensors. In the case of additive Gaussian noise on a single sensor with linear measurement function, this is simply
+
+\begin{align}
+    p(z_k| & x_{k-1, j}, u_k) \propto \\
+    & exp(-1/2(z_k - Cf(x_{k-1, j}, u_k))^T
+    (\Sigma_v + C\Sigma_wC^T)^{-1}(z_k - Cf(x_{k-1, j}, u_k))) \nonumber
+\end{align}
+
+Where $\Sigma_v$ is the process noise covariance and $\Sigma_w$ is the measurement noise covariance.  
+
+One can also use more heuristic approaches, like using the euclidean distance as the weighting function, normalised to one. This was employed in the particle filter Revolve NTNU uses for path planning. There the weighting of the different center line hypotheses is a function of the sum of the cones' deviations from the mean track width and has given good results.
+
+\subsubsection{Error linearization}
+
+A rather large theoretical step forward was taken by Krener and Isidori\cite{FirstErrorLinNonlinObs}, when they developed a nonlinear observer by so-called error linearization. The idea is to find transformations of the state and output coordinates, 
+
+\begin{equation}
+    z = \Theta(x)
+\end{equation}
+\begin{equation}
+    w = \gamma(y)
+\end{equation}
+
+such that nonlinear system can be expressed in the form
+
+\begin{align}
+    \Dot{z} &= Az + \alpha(u,y) \\
+    w &= Cz + \beta(u,y)
+\end{align}
+
+This makes it easy to make an observer for the system
+
+\begin{align}
+    \Dot{\hat{z}} &= A\hat{z} + \alpha(u,y) + L(w-\hat{w}) \\
+    \hat{w} &= C\hat{z} + \beta(u,y) \\
+    \hat{z}(0) &= \Theta(\hat{x}^0) \\ 
+    \hat{x} &= \Theta^{-1}(\hat{z})
+\end{align}
+
+If the pair $\{C,A\}$ is observable and one has placed the spectrum of $A-LC$ in the open left half plane, then this observer will converge exponentially for all starting estimates. 
+
+The problem is of course that not many systems are possible to transform like this, and many who do can only be transformed into this form by repeated derivations of the output. The latter makes the whole design very vulnerable to noise, in fact so much that it has little practical use. 
+
+
+A similar approach is the so called High Gain Observer\cite{HighGain}, which gets the system into the uniformly observable form, and then adds a error term of $L(y-\hat{y})$ to each state. If the gain is large enough this can be proven to be locally asympotically stable, but it suffers from the same problems as the error linearization. 

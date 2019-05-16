@@ -1,2 +1,7 @@
 \section{Problem formulation}
-Estimate local changes in the states using sensor data; use this and local detections of cones to build a map of the race tracks delimiters and place the vehicle in this map. The overall error in the estimated map and pose must be small enough for the car to confidently avoid the delimiters. The run time of the algorithm must be small enough for the car to drive at the teams goal mean velocity of $10 m/s$.
+
+The problem that this thesis tries to solve is split into two. The first is to estimate local changes in the pose of the race car. This is what is usually referred to as odometry. 
+
+The second problem is \gls{SLAM}. \gls{SLAM} is the problem of using the odometry and local detections of landmarks to gradually build up a map and place the race car in the map. The landmarks are in this case the delimiters of the race track that the car is trying to navigate.
+
+The error in odometry must be low enough for the SLAM system to manage to correct it. The SLAM system must be able to build a map that is accurate enough for the control system to confidently avoid the delimiters. The run time of the SLAM system must be so short that the car gets the map information fast enough to drive at the teams goal speed of 10 \si{\metre / \second} (average).

@@ -1,16 +1,14 @@
 \section{State estimation}
 
-Graphs with true and estimated states. Graphs with the error in state estimation, both rotation and location, as a function of time? Also have the error/s as a function of speed and rotational speed, and maybe also as a function of acceleration? Drop this last part, don't see the use. 
+To validate the algorithm, three sets of data that had good information from the cars Dual-\gls{GPS} was found. Two sets are from the actual dynamic event called "Endurance" during the two competition \gls{FSS} and \gls{FSG}. These two data sets are called "FSS Endurance" and "FSG Endurance", respectively. The last data set is from a test track at \gls{FSG} that the team had access to in the days before the competition started, called "FSG Test Track 1". 
 
-To validate the algorithm, three sets of data that had good information from the cars Dual-GPS was found. Two sets are from the actual dynamic event called "Endurance" during the two competition Formula Student Spain (FSS) and Formula Student Germany (FSG). These two datasets are called "FSS Endurance" and "FSG Endurance", respectively. The last data set is from a test track at FSG that the team had access to in the days before the competition started, called "FSG Test Track 1". 
+The RTK-GPS data were all corrupted by sporadic outliers, so a preprocessing step to remove them was done. A preprocessing step of the yaw angle data was also needed, since the internal Kalman filter of the \gls{INS} restricted the yaw to the interval $[-\pi,\pi]$ \radians. 
 
-The RTK-GPS data were all corrupted by sporadic outliers, so a preprocessing step to remove them was done. A preprocessing step of the yaw angle data was also needed, since the internal kalman filter of the RTK-GPS restricted the yaw to the interval $[-\pi,pi]$ radians. 
-
-The data sets all had varying degrees of quality of the ground truth. They did however all suffer more or less the same from one rather large flaw; last years team had not managed to turn on the internal kalman filtering of the IMU data. This has been corrected now, but this means that the results shown below are different, and most likely worse, than what is going to be seen when the test period begins.
+The data sets all had varying degrees of quality of the ground truth. They did however all suffer more or less the same from one rather large flaw; last years team had not managed to turn on the internal Kalman filtering of the \gls{INS} data. This has been corrected now, but this means that the results shown below are different, and most likely worse, than what is going to be seen when the test period begins.
 
 \subsubsection{Ground truth quality}
 
-The first data set, "FSS Endurance", had no GPS position data that was usable, but the longitudinal velocity and yaw rate where both good, as well as the yaw angle. The lateral velocity is usable, but definitely not perfect. It can't be considering how large the sideslip angles can get, regularily going up to values of 10-15 degrees, which after discussing with the drivers at the event and the vehicle dynamics group seem unreasonably high. The car is not built to sideslip that much at those velocities, nor are the drivers instructed to drive so recklessly, especially not during the endurance event where saving energy is key. 
+The first data set, "FSS Endurance", had no \gls{GPS} position data that was usable, but the longitudinal velocity and yaw rate where both good, as well as the yaw angle. The lateral velocity is usable, but definitely not perfect. It can't be considering how large the side slip angles can get, regularly going up to values of 10-15 \degrees, which after discussing with the drivers at the event and the vehicle dynamics group seem unreasonably high. The car is not built to side slip that much at those velocities, nor are the drivers instructed to drive so recklessly, especially not during the endurance event where saving energy is key. 
 
 The results of the state estimator compared to ground truth for longitudinal  and lateral velocity, yaw rate and yaw angle on the "FSS Endurance" is seen in figures \ref{Fig:VxFSSEndurance}, \ref{Fig:VyFSSEndurance}, \ref{Fig:RFSSEndurance}, \ref{Fig:YawFSSEndurance}, respectively. The integrated position without ground truth is shown in \ref{Fig:PosFSSEndurance}. 
 
@@ -20,6 +18,9 @@ The last data set, "FSG Test Track 1", like data set "FSS Endurance", had no usa
 
 The results of the state estimator compared to ground truth for longitudinal  and lateral velocity, yaw rate and yaw angle on the "FSG Test Track 1" is seen in figures \ref{Fig:VxFSGTestTrack}, \ref{Fig:VyFSGTestTrack}, \ref{Fig:RFSGTestTrack}, \ref{Fig:YawFSGTestTrack}, respectively. The integrated position without ground truth is shown in \ref{Fig:PosFSGTestTrack}. 
 
+\subsubsection{Overall results}
+
+The results obtained so far show low error on the longitudinal velocity and yaw rate and seems to give good position estimates. The lateral velocity on the other hand is more uncertain. It does not match perfectly the ground truth. This might be because of poor ground truth data. Either way the lateral velocity is not the most important, as long as the overall pose estimate has low drift. 
 
 
 \begin{figure}

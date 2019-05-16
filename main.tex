@@ -16,12 +16,13 @@
 \usepackage[lmargin=25mm,rmargin=25mm,tmargin=27mm,bmargin=30mm]{geometry}
 
 \input{docsetup.tex}
-
+\input{acronyms}
+\glstoctrue
 
 %\usepackage{cleveref}
 \usepackage{todonotes}
 
-\title{State estimation, mapping and localization of autonomous race car for Revolve NTNU}
+\title{State estimation, mapping and localisation of autonomous race car for Revolve NTNU}
 \author{Adrian Bogen Skibelid}
 \date{2019}
 
@@ -50,7 +51,7 @@
 	
 	{\huge\bfseries 
 	{\setstretch{1.0}
-	State estimation, mapping and localization of autonomous race car for Revolve NTNU}\\[0.4cm] % Title of your document
+	Odometry, mapping and localisation of autonomous race car for Revolve NTNU}\\[0.4cm] % Title of your document
 	}
 	
 	\HRule\\[1.5cm]
@@ -121,5 +122,7 @@
 
 \newpage
 \input{reference}
+%\addcontentsline{toc}{Chapter}{List of Acronyms}
+\printglossary[type=\acronymtype, title=List of Acronyms, toctitle=List of Acronyms]
 
 \end{document}

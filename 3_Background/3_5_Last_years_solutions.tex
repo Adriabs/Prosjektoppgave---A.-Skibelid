@@ -1,0 +1,11 @@
+\subsection{Last years odometry solution}
+
+Last year the odometry was estimated by a rather rudimentary approach, colored by haste, as the team was scrambling to get everything else up and running for the first Revolve NTNU driverless car. It used only the \gls{RPM} measurements from the wheels. To estimate the forward velocity it took the mean of these and multiplied it with a constant estimate of the wheel radii. The yaw rate was approximated by using the difference in the front wheel \glspl{RPM} and the track width (see figure \ref{Fig:NameOfCarParts}).  
+
+This very crude approximation was possible to use at very low speeds, but did not work at all at higher speeds, mostly because of wheel slip. 
+
+\subsection{Last years data association approach}
+
+Last years data association was done by simply assuming that if a new detection was within a certain radius from an existing cone in the existing map, it was the same cone. If a measurement could not be associated to the existing map, it had to be seen a certain number of times to get added to the map. This meant that the system had a list of hypothesises that a new measurement was associated to the same way it was associated to the map. 
+
+This method did however not take into account the different spatial uncertainties stemming from the different detection algorithms, nor did it account for the varying uncertainty of the state estimation. It also did not have a way of distrusting the landmarks if it had not been seen when it should have been. 
