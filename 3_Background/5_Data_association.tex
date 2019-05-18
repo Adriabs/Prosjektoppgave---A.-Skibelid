@@ -10,7 +10,7 @@ The problem of associating measurements to landmarks is what the SLAM literature
 
 Most of the work done on data association is for data association applied to object tracking, typically using a radar\cite{RadarTracking}, but also more recently to track visually\cite{VisualTracking}. Data association used for tracking implies finding out which of the tracked objects correspond to new measurements, where typically the measurements are all made from a stationary vantage point, while the objects are moving around. This means one must predict where the objects are going to be and try to match all observed objects with objects that are being tracked. 
 
-Data association applied to \gls{SLAM} have gotten more common in the recent years. It is an almost opposite problem to the tracking problem, as the observer is the one moving around, while the landmarks are standing still. While a lot of the work done on tracking focuses on single or a handful of objects to track, when solving the \gls{SLAM} problem one, by definition, wants to be able to handle a large amount of landmarks. This is because the output of the system is going to be the map, and you want it to be able to handle all the landmarks that build up the map. The data association problem met in the two settings are however quite similar, and work done in one field therefore benefits the other. 
+Data association applied to \gls{SLAM} have gotten more common in the recent years. It is an almost opposite problem to the tracking problem, as the observer is the one moving around, while the landmarks are standing still. While a lot of the work done on tracking focuses on a single or a handful of objects to track, when solving the \gls{SLAM} problem one by definition wants to be able to handle a large amount of landmarks. This is because the output of the system is going to be the map, and the system needs to be able to handle all the landmarks that build up the map. The data association problem met in the two settings are however quite similar, and work done in one field therefore benefits the other. 
 
 \subsection{Nearest Neighbour}
 
@@ -59,7 +59,7 @@ where $F_k$ is known, $w_k$ has zero mean and a known variance of
     E(w_kw_j') = Q_k\delta_{kj}
 \end{equation}
 
-Note that knowing the transition matrix means the tracked object is non-manoeuvring. The initial state is assumed normally distributed with mean $\hat{x}_{0|0}$ and covariance $P_{0|0}$, independent of $w_k$. Similarly it is assumed a known linear measurement function with additive white noise
+The initial state is assumed normally distributed with mean $\hat{x}_{0|0}$ and covariance $P_{0|0}$, independent of $w_k$. Similarly it is assumed a known linear measurement function with additive white noise
 
 \begin{equation}
     z_k = H_kx_k + y_k, k = 1,2,..
@@ -87,7 +87,7 @@ where
     S_k = H_kP_{k|k-1}H'_k+R_k
 \end{equation}
 
-and $\nu_{k,i} = z_{k,i} - \hat{z}_{k|k-1}$ is the difference between measurement $z_{k,i}$ and the predicted object position $\hat{z}_{k|k-1}$ at time step $k$. $\gamma$ is the validation gate threshold. This assures that the correct measurement has at least a certain probability of being kept. 
+and $\nu_{k,i} = z_{k,i} - \hat{z}_{k|k-1}$ is the difference between measurement $z_{k,i}$ and the predicted object position $\hat{z}_{k|k-1}$ at time step $k$. $\gamma$ is the validation gate threshold. This assures that the correct measurement has a non-zero probability of being kept. 
 
 The linearity assumptions added above is later removed and accounted for by increasing the covariances on the state transition and measurement. Each validated measurement is used to update the object position, and it is shown on a highly nonlinear simulation problem that the resulting track is better than both the nearest neighbour filter and a track splitting filter, where each new measurement spawns a new filter. The latter is exponential in the number of false positives, so it is very unfeasible in many situations. 
 
@@ -95,11 +95,11 @@ The linearity assumptions added above is later removed and accounted for by incr
 
 To handle the more useful case of having more than one object to track in the presence of uniform Poisson clutter, the \gls{JPDA} method was developed\cite{JPDA}. It assumes several objects, uniformly distributed clutter in the neighbourhood of the objects and low probabilities of detecting the targets at each time step. When the targets are far enough away that none of the same measurements are possible to associate to both, the algorithm is like running several \glspl{PDA} in parallel. However, when measurements are possible to associate to more than one target, \gls{JPDA} takes this into account. 
 
-This leads to good tracking, but at the cost of a much higher computational cost, especially when there are many targets. In addition it assumes the number of targets are known, and has no logic to initialise and terminate possible tracks. This is dealt with in \cite{Multitrack}. In \cite{JPDARev} the $M$ best possible permutations of measurement to target matches are found using \gls{LP}. This leads to a massive reduction in runtime compared with the pure \gls{JPDA}, while retaining most of the performance. Like with the \gls{JPDA} it does however not handle initialising and terminating tracks. 
+This leads to good tracking, but at the cost of a much higher computational cost, especially when there are many targets. In addition it assumes the number of targets are known, and has no logic to initialise and terminate possible tracks. This is dealt with in \cite{Multitrack}. In \cite{JPDARev} the $M$ best possible permutations of measurement to target matches are found using \gls{LP}. This leads to a massive reduction in runtime compared with the pure \gls{JPDA}, while retaining most of the performance. Like with the \gls{JPDA} it does however not handle initialising and terminating tracks. This is assumed to be done by an operator.
 
 \subsection{Joint Maximum Likelihood}
 
-In the domain of data association for \gls{SLAM}, a valid option that must be mentioned is the \gls{JMH}\cite{JMH}. It aims to solve the problem of uniquely associating a batch of measurements of landmarks to existing landmarks. \gls{JMH} frames the tracking problem as the problem of finding the set, $E_k = \{ e_1, e_2, ... , e_m\} $, of associations, where each element $e_n = \{i,j\}$ is a binary association between measurement $i$ and landmark $j$ that maximises the products of likelihoods
+A data association method developed specifically for \gls{SLAM} is the \gls{JMH}\cite{JMH}. It aims to solve the problem of uniquely associating a batch of measurements of landmarks to existing landmarks. \gls{JMH} frames the tracking problem as the problem of finding the set, $E_k = \{ e_1, e_2, ... , e_m\} $, of associations, where each element $e_n = \{i,j\}$ is a binary association between measurement $i$ and landmark $j$ that maximises the products of likelihoods
 
 \begin{equation}
     E_k = \argmax_{E_l} \prod_{\forall e_m \in E_l} f_{e_{i,j}}
@@ -117,7 +117,7 @@ To avoid overflow this is transformed into maximising the sum of the log-likelih
     E_k = \argmax_{E_l} \sum_{\forall e_m \in E_l} ln(f_{em})
 \end{equation}
 
-which is then the same as finding the $E_l$ that minimises the Malahanobis distance.
+which is then the same as finding the $E_l$ that minimises the sum of the Malahanobis distances
 
 \begin{equation}
     E_k = \argmin_{E_l} \sum_{\forall e_m \in E_l} N_{e_m}

@@ -14,23 +14,29 @@ where $x$ is the state, $u(t)$ is the input at time $t$ and $w(t)$ is the noise 
 
 where $y$ is the measurement and $v(t)$ is measurement noise. The solution depends on an initial value $x_0$ for the state. The problem is then to make an estimator for the state or part of the state that converges to the true value over time.
 
-In the specific case met by Revolve NTNU the states we want to estimate are the linear and angular velocities, which are then to be integrated up to give an initial estimate of the change in position.
+In the specific case met by Revolve NTNU the states we want to estimate are the linear and angular velocities, which are then to be integrated up to give an initial estimate of the change in position and orientation.
 
-The general field of state estimation is a broad one, that has been studied extensively. Below some general state estimation algorithms and design methodologies are explained, as well as some that are more specific to our case. Some of the algorithms make more assumptions on the dynamical model, measurement function and the model and measurement noise, and thus it must be evaluated whether they fit the specific problem at hand if they are to be used. 
+The general field of state estimation is a broad one, that has been studied extensively. Below some general state estimation algorithms and design methodologies are explained, as well as some that are more specific to our case. Some of the algorithms make more assumptions on the dynamical model, measurement function and the model and measurement noise. Therefore it must be evaluated whether they fit the specific problem at hand if they are to be used. 
 
 \subsection{Kalman filter}
 
-One could argue that the Kalman filter is the most widely used and most successful algorithm to ever come out of the control community. It is ubiquitous, showing up in everything from cars to cell phones. What it is at its core is a way of combining sensor data and knowledge of a dynamical system, to get a better estimate of its states, even when faced with noise. 
+One could argue that the Kalman filter is the most widely used and most successful algorithm to ever come out of the control community. It is ubiquitous, showing up in everything from cars to cell phones. What it is at its core is a way of combining sensor data and knowledge of a dynamical system, to get a better estimate of its states, even when faced with Gaussian or approximately Gaussian noise. 
 
 A Kalman filter uses a dynamical model of a system, as well as knowledge of the noise that influences it, and is capable of combining several different types of sensors, making it a very powerful and easy way of doing sensor fusion. It estimates how the system will develop, propagating not only its states, but also its covariance. This makes it able to know optimally how much it should give weight to measurements compared to the estimates coming out of integrating the dynamical model. 
 
-One main property of the Kalman filter is the so called Markov assumption. This is the assumption that the current state only depends on the previous state and the input. This is compared to a smoothing approach, where either all or at least some of the previous states are assumed to have an effect on the current state. In this case the problem is not only to find the most probable current state given the measurement, but the set of most probable states given all the measurements. 
+One main property of the Kalman filter is the so called Markov assumption. This is the assumption that the current state only depends on the previous state and the input. This is compared to a smoothing approach, where either all or some of the previous states are assumed to have an effect on the current state. In this case the problem is not only to find the most probable current state given the measurement, but the set of most probable states given all the measurements. 
 
 The Kalman filter is proven to be the optimal estimator when applied to a linear system with additive zero-mean Gaussian noise, or a nonlinear system with the same noise that is linearized around its true solution. The latter is of course not possible, since if the true solution was known there would be no need to estimate the states of the system. It does however mean that if the estimate is close to the true solution, the estimator will give good results. Doing so gives an \gls{EKF}\cite{EKF}. This is the most common version of the Kalman filter, considering most systems in the real world are not truly linear systems.  
 
-\todo[inline]{Se over dette!}
+To be more specific, the Extended Kalman filter tries to solve the problem of estimating the states of a nonlinear dynamical system with additive zero-mean Gaussian noise 
 
-To be more specific, the Kalman filter tries to solve the problem of estimating the states of a nonlinear dynamical system with additive zero-mean Gaussian noise. It consists of a linear or linearized system with a transition matrix for each time step $k$, $F_{k}$, a way of influencing the system through the actuator $u_k$, represented as a matrix $B_{k}$, which is either the linear input function or the linearized input function. Together they give the a priori estimate of the state
+\begin{align}
+    \Dot{x} &= f(x,u) + v \\
+    y &= h(x,u) + w
+    \label{DynsysEq}
+\end{align}
+
+The filter consists of a linear dynamic system with a transition matrix, $F_{k}$, and input matrix, $B_k$, that linearily approximates the system in \ref{DynsysEq}. If the dynamic system the filter tries to estimate state of is linear, then this approximation is exact. Together they give the a priori estimate of the state
 
 \begin{equation}
     \hat{x}_{k|k-1} = F_k\hat{x}_{k-1|k-1} + B_k u_k
@@ -54,7 +60,7 @@ where
     S_k = R_k + H_kP_{k|k-1}H^T_k
 \end{equation}
 
-is the measurement covariance, $R_k$, plus the propagated noise from the previous step. This gain is then used to give a high weight to the measurement when the measurement noise is small and system noise is large, and vice versa. The estimate of the state then is
+is the measurement covariance, $R_k$, plus the propagated noise from the previous step. This gain is then used to give a high weight to the measurement when the measurement noise is small and system noise is large, and vice versa. The estimate of the state is then
 
 \begin{equation}
     \hat{x}_{k|k} = \hat{x}_{k|k-1} + K_k\Tilde{y}_k
@@ -78,7 +84,7 @@ which can be proven to be optimal for linear systems and around the true traject
 
 To deal with specific instances of the state estimation problem, extensions to the Kalman filter have been developed. 
 
-The \gls{MEKF}\cite{MEKF} was developed to deal with the singularities that arise when rotation of a rigid three dimensional body is parametrized as three angles. 
+The \gls{MEKF}\cite{MEKF} was developed to deal with the singularities that arise when rotation of a rigid three dimensional body is parametrised as three angles. 
 
 The \gls{UKF}\cite{UKF} avoids having to linearize the dynamical system to propagate the covariance. It instead represents the state distribution as a set of particles, chosen such that they have some of the same statistical properties as the distribution they are sampled from. These are then propagated through the full nonlinear state transition function, and the new distribution is recreated using them. The resulting distribution, when this method is applied to a nonlinear system with additive zero-mean Gaussian noise is proven to be a third order approximation, compared to only a first order approximation in the \gls{EKF}. For a non-Gaussian distribution this method is still correct to the second order.
 
@@ -104,21 +110,21 @@ where the conditional probability $P(\xi_2|\xi_1)$ is possible to represent anal
 
 \subsection{Smoothing}
 
-The above state estimation methods all use the Markov assumption to marginalise the previous information. That is to say, it assumes that all states depend only on the state before it and the latest input. A contrary approach to this is to try to find the total set of state assignments that minimises the error, given all the measurements so far. This is what is known as smoothing. If instead of trying to find all the states $\{x_0,\dots,x_t\}$, one only looks at a finite amount of time back in time, i.e. only tries to find the $\{x_{t-k},...,x_{t}\}$ latest states, then this is what is called fixed-lag smoothing. The fixed-lag smoother reduces to a filter when $k=0$, of which a Kalman filter is an example.
+The above state estimation methods all use the Markov assumption to marginalise the previous information. That is to say, it assumes that all states depend only on the state before it and the latest input. A contrary approach to this is to try to find the total set of state assignments that minimises the error, given all the measurements so far. This is what is known as smoothing\cite{SmoothingBook}. If instead of trying to find all the states $\{x_0,\dots,x_t\}$, one only looks at a finite amount of time back in time, i.e. only tries to find the $\{x_{t-k},...,x_{t}\}$ latest states, then this is what is called fixed-lag smoothing. The fixed-lag smoother reduces to a filter when $k=0$, of which a Kalman filter is an example.
 
 A smoothing approach to state estimation is usually done through nonlinear optimisation. SLAM can be seen as smoothing, because usually one is not only interested in finding the latest pose, but the entire path taken so far that minimises the error between measurement and prediction. 
 
 \subsection{Single sensor odometry}
 
-In addition to the above mentioned state estimation approaches, there exists algorithms that try to create an odometry source through the use of only one sensor. The most prominent of these are the visual odometry that use the camera to try to estimate the relative pose between consecutive frames. This can then be used in a filter like the EKF, or in a smoothing approach. Smoothing implies not only estimating the distribution of the latest pose, but also the distribution of previous poses. 
+In addition to the above mentioned state estimation approaches, there exists algorithms that try to create an odometry source through the use of only one sensor. The most prominent of these are the visual odometry that use the camera to try to estimate the relative pose between consecutive frames. This can then be used in a filter like the EKF, or in a smoothing approach. 
 
-One of the most popular single sensor odometry algorithms is \gls{SVO}\cite{SVO} and more recently its stereo extension \gls{SVO} 2.0\cite{SVO2}. It finds feature points in the two consecutive images using FAST corner detection\cite{FAST} and Edgelets edge detector\cite{Edgelet}. Only the points that can be matched between the images are kept. Around the features a patch of pixels are chosen. These patches are then transformed from one of the frames into the other using the intrinsic parameters of the camera. Then the pose that minimises the difference between the pixel value of the projected and the true pixels is found, see figure \ref{Fig:SVO}. 
+One of the most popular single sensor odometry algorithms is \gls{SVO}\cite{SVO} and more recently its stereo extension \gls{SVO} 2.0\cite{SVO2}. It finds feature points in the two consecutive images using FAST corner detection\cite{FAST} and Edgelets edge detector\cite{Edgelet}. Only the points that can be matched between the images are kept. Around the features a patch of pixels are chosen. These patches are then transformed from one of the frames into the other using the intrinsic parameters of the camera. Then the pose that minimises the difference between the pixel value of the projected and the true pixels is found. This is illustrated in figure \ref{Fig:SVO}. 
 
 \begin{figure}
     \centering
     \includegraphics[width=0.8\linewidth]{0_Images/3_Background/SVO.eps}
-    \caption[Illustration of \gls{SVO}'s reprojection of an image patch.]
-    {Illustration of \gls{SVO}'s projection of an image patch from one image into another. It tries to find the pose that minimises the difference between the pixel value of the projected and the true pixels.}
+    \caption[Illustration of \gls{SVO}'s transformation of an image patch.]
+    {Illustration of \gls{SVO}'s transformation of an image patch from one image into another. It tries to find the pose that minimises the difference between the pixel value of the projected and the true pixels.}
     \label{Fig:SVO}
 \end{figure}
 
@@ -128,13 +134,17 @@ A problem with using a single camera for positioning, is that it provides no inf
 
 \gls{SVO} and \gls{SVO} 2.0 are implemented in C++ and publicly available under a non-commercial license. 
 
-Another viable algorithm is \gls{DSO}\cite{DSO}. It does much the same as \gls{SVO}, but instead of looking at patches of pixels around feature points, it looks at entire regions of pixels where the pixel intensity gradients is deemed large enough. From these regions it samples pixels randomly and then uses these pixel values to find the optimal relative pose. The relative poses are then used in a bundle adjustment step as well. 
+Another viable algorithm is \gls{DSO}\cite{DSO}. It does much the same as \gls{SVO}, but instead of looking at patches of pixels around feature points, it looks at entire regions of pixels where the pixel intensity gradients is deemed large enough. From these regions it samples pixels randomly and then uses these pixel values to find the optimal relative pose. The relative poses are then used in a bundle adjustment step similar to the one in SVO.
 
 The author of the original \gls{DSO} paper has a publicly available C++ implementation, but although there is a theoretical stereo extension called \gls{DSO} Stereo\cite{DSOStereo}, the only implementations of the algorithm that are publicly available is a very unstable one from someone other than the author. 
 
 Instead of using the camera information to get an odometry source, one could apply the same set of ideas to the point cloud coming out of the \glspl{LiDAR}. This gives what is known as \gls{LiDAR} Odometry. 
 
+\iffalse
+
 The most known, publicly available, algorithm at the moment is LOAM\cite{LOAM}. It finds feature points that it can match in successive swipes of the \gls{LiDAR}, that then gives point to point distance estimates. These distance estimates are then added one by one iteratively to a set of distances, and a single step of a nonlinear optimiser tries to find the pose change between frames. Distance estimates are added until the optimisation step converges. 
+
+\fi
 
 \subsection{Nonlinear observer}
 \iffalse
@@ -198,7 +208,7 @@ One of the next steps the community took was to develop the statistically motiva
 
 A more recent development, spearheaded in part by the research community here at NTNU, is the use of Lyapunov anaysis to develop nonlinear observers that converge asymptotically to the true state\cite{PassiveFossen}. Made first for Dynamic Positioning (DP) of large boats, it consists of starting out with an initial guess for an observer, then trying to prove its stability by Lyapunov analysis and then modifying the observer until stability can be proven. 
 
-By Lyapunov analysis\cite{Lyapunov} is meant the process of finding a Lyapunov function candidate $V(\Tilde{x})$ that is positive definite, i.e. larger than or equal to zero for all $\Tilde{x}\neq \Vec{0}$. Here $\Tilde{x}$ is the error between the true state and the estimate. The proof is then to show that this function has the special property that
+By Lyapunov analysis\cite{Lyapunov} is meant the process of finding a Lyapunov function candidate $V(\Tilde{x})$ that is positive definite, i.e. larger than or equal to zero for all $\Tilde{x}\neq \Vec{0}$, and radially unbounded, which means it goes to infinity if the argument $\Tilde{x}$ goes to infinity. Here $\Tilde{x}$ is the error between the true state and the estimate. The proof is then to show that this function has the special property that
 
 \begin{equation}
     \frac{d V(\Tilde{x})}{dt} \leq 0 \;\; \forall \hat{x}
@@ -222,4 +232,4 @@ where $x$ is the state, $u$ is the input and $v$ and $w$ are noise inputs, a goo
     \hat{y} &= h(\hat{x}, u, 0)
 \end{align}
 
-Here $\Tilde{y} = y -  \hat{y}$ is the difference between the measured y and the estimated y. A first guess for the Lyapunov function could then be the difference in physical energy of the system when in the true state and when in the estimated state, or the quadratic sum of the error in the estimated states. 
+Here $\Tilde{y} = y -  \hat{y}$ is the difference between the measured y and the estimated y. A first guess for the Lyapunov function could then be the squared difference in physical energy of the system when in the true state and when in the estimated state, or the quadratic sum of the error in the estimated states. 

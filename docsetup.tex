@@ -4,6 +4,7 @@
 \usepackage{mathrsfs}
 \usepackage{amsthm}
 \usepackage{amsmath}
+\usepackage{placeins}
 %\usepackage[acronym]{glossaries}
 
 % For side by side figures
@@ -38,6 +39,9 @@
 \usepackage{times}
 \usepackage[acronym,toc]{glossaries}
 \makeglossaries
+
+% Trying to fix page number not showing up
+
 
 % SI units and signs
 \usepackage{siunitx}
@@ -84,4 +88,5 @@
 \renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
 \renewcommand{\headrulewidth}{0.1ex}
 \renewcommand{\footrulewidth}{0.1ex}
-\fancypagestyle{plain}{\fancyhf{}\fancyfoot[LE,RO]{\thepage}\renewcommand{\headrulewidth}{0ex}}
+%\fancypagestyle{plain}{\fancyhf{}\fancyfoot[LE,RO]{\thepage}\renewcommand{\headrulewidth}{0ex}}
+\fancyfoot[C]{\thepage}

@@ -26,7 +26,7 @@ The problem can now be formulated as computing the probability distribution
     P(x_k,m|Z_{0:k},U_{0:k},x_0)
 \end{equation}
 
-at every time step $k$. This is the joint posterior density of the location of all landmarks in the map and the agents pose, given all the measurements that have been seen so far and the control inputs that have been applied to the agent, as well as the initial pose. 
+at every time step $k$. This is the joint posterior density of the location of all landmarks in the map and the agents pose, given all the measurements so far and the control inputs that have been applied to the agent, as well as the initial pose. 
 
 One usually wants to compute this distribution recursively. This is done by using the previously computed distribution $P(x_{k-1},m|Z_{0:k-1},U_{0,k-1},x_0)$ at the previous time step $k-1$, together with a model for the next pose of the agent given the current input and pose, 
 
@@ -40,7 +40,7 @@ and a measurement model, giving the probability of making an observation $z_k$ o
     P(z_k|x_k,m)
 \end{equation}
 
-The standard way of doing it now is doing a two part update to get the desired distribution. First a time update, that uses the motion model to find an estimate for the agents location
+The standard way of doing it now is a two part update to get the desired distribution. First a time update, that uses the motion model to find an estimate for the agents location
 
 
 \begin{align}
@@ -68,7 +68,7 @@ How to describe the motion model and measurement model, and how to do the two up
 
 \subsection{iSAM2}
 
-A state of the art solution to the above problems is \gls{iSAM2}\cite{iSAM2}. It adds information incrementally without the need for periodic batch operations. This means the computational demand does not grow unbounded over time. 
+A state of the art solution to the first two of the above problems is \gls{iSAM2}\cite{iSAM2}. It adds information incrementally without the need for periodic batch operations. This means the computational demand does not grow unbounded over time. 
 
 This is achieved because of the following
 
@@ -105,11 +105,11 @@ This is done in iSAM2 by factorising the problem through Cholesky factorisation 
     A^TA = A^Tb
 \end{equation}
 
-easy to solve by forward and backwards substitution. The aim of iSAM2 is therefore to keep this factorisation unchanged as much as possible, as the linear least squares problem then always is efficient to solve. To do this it keeps track of how much a variable has deviated from its linearisation point, and manages to only relinearise the parts of the cost function that are affected by this variable. This is again done by using the Bayes tree. 
+easy to solve by forward and backwards substitution. The aim of iSAM2 is therefore to keep this factorisation unchanged as much as possible, as the linear least squares problem then always is efficient to solve. To do this it keeps track of how much a variable has deviated from its linearisation point, and manages to only relinearise the parts of the cost function that are affected by this variable. This is done using the Bayes tree. 
 
 When a new set of measurements, $z_k$, arrive,  all the affected cliques are removed and converted back into a factor graph. Then the new measurements are added as factors and the resulting factor graph is converted back again into a Bayes tree. The rest of the cliques from the previous tree are then added to this new Bayes tree. 
 
-The ordering used to convert the factor graph to a Bayes tree is constrained to get the newest variables to the top of the tree. This is because it is assumed that the newest variables are the most likely to be affected by new measurements. Thus this ordering ensures that the expected total number of variables affected by new measurements is kept to a minimum. This constraint is enforced through CCOLAMD\cite{CCOLAMD}, that also ensures overall good ordering giving sparsity to the factorised information matrix. 
+The ordering used to convert the factor graph to a Bayes tree is constrained to get the newest variables to the top of the tree. This is because it is assumed that the newest variables are the most likely to be affected by new measurements. Thus this ordering ensures that the expected total number of variables affected by new measurements is kept to a minimum. This constraint is enforced through CCOLAMD\cite{CCOLAMD}, that also ensures overall good ordering giving sparsity to the factorised information matrix, thus making sure the linear least squares problem is easy to solve efficiently.
 
 The final piece to the \gls{iSAM2} puzzle is to only update states that are thought to have changed enough. This is done by updating states by going backwards in the Bayes tree. At each clique it determines how much this new update changes the variables in the clique. When the change in variables gets small enough, it stops updating the rest of the variables. This means the estimates coming out of the algorithm are only approximations, but it avoids batch steps and manages to keep the runtime low at all times.
 
